@@ -20,7 +20,7 @@ export default class SkillGraphPlugin extends Plugin {
 			this.settings.skillFileName,
 			this.settings.nameField
 		);
-		this.patcher = new GraphPatcher(this.app, this.parser.skillMap);
+		this.patcher = new GraphPatcher(this.app, this.parser.skillMap, this.settings);
 
 		// 等 vault 載入完成後再全量掃描
 		this.app.workspace.onLayoutReady(async () => {
@@ -92,6 +92,7 @@ export default class SkillGraphPlugin extends Plugin {
 			this.settings.skillFileName,
 			this.settings.nameField
 		);
+		this.patcher.updateSettings(this.settings);
 		this.patcher.patchAllGraphs();
 	}
 

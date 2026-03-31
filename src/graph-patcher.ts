@@ -1,21 +1,43 @@
 import { App, WorkspaceLeaf } from "obsidian";
 import type { SkillInfo, GraphNode, GraphRenderer, GraphView } from "./types";
+import type { SkillGraphSettings } from "./settings";
 
 /**
  * Hook Obsidian 的 Graph View renderer，
- * 覆寫節點名稱並注入技能引用的邊。
+ * 覆寫節點名稱並依類型上色。
+ * 實測得知 graph 用 PixiJS 渲染，文字存在 node.text._text，顏色存在 node.color。
  */
 export class GraphPatcher {
 	private app: App;
 	private skillMap: Map<string, SkillInfo>;
+	private settings: SkillGraphSettings;
+	/** 所有被 skill 引用的 vault 內檔案路徑 */
+	private localRefPaths: Set<string> = new Set();
 
-	constructor(app: App, skillMap: Map<string, SkillInfo>) {
+	constructor(app: App, skillMap: Map<string, SkillInfo>, settings: SkillGraphSettings) {
 		this.app = app;
 		this.skillMap = skillMap;
+		this.settings = settings;
+	}
+
+	/** 更新設定 */
+	updateSettings(settings: SkillGraphSettings): void {
+		this.settings = settings;
+	}
+
+	/** 重新計算哪些路徑是 local references */
+	private refreshLocalRefs(): void {
+		this.localRefPaths.clear();
+		for (const info of this.skillMap.values()) {
+			for (const ref of info.references) {
+				this.localRefPaths.add(ref);
+			}
+		}
 	}
 
 	/** 掃描所有 graph/localgraph leaf 並 patch */
 	patchAllGraphs(): void {
+		this.refreshLocalRefs();
 		const graphLeaves = [
 			...this.app.workspace.getLeavesOfType("graph"),
 			...this.app.workspace.getLeavesOfType("localgraph"),
@@ -31,56 +53,55 @@ export class GraphPatcher {
 		const renderer = view?.renderer;
 		if (!renderer?.nodes) return;
 
-		this.patchNodeNames(renderer);
-		this.injectEdges(renderer);
+		// 顏色格式為 { a: 1, rgb: 0xRRGGBB }
+		this.patchNodes(renderer);
 	}
 
-	/** 覆寫 SKILL.md 節點的 getDisplayText */
-	private patchNodeNames(renderer: GraphRenderer): void {
+	/** 覆寫節點名稱 + 上色 */
+	private patchNodes(renderer: GraphRenderer): void {
 		for (const node of renderer.nodes) {
-			if (node._skillGraphPatched) continue;
-
-			const skillInfo = this.skillMap.get(node.id);
-			if (skillInfo) {
-				// 儲存原始函式，cleanup 時恢復
-				node._originalGetDisplayText = node.getDisplayText.bind(node);
-				const displayName = skillInfo.displayName;
-				node.getDisplayText = () => displayName;
-				node._skillGraphPatched = true;
-			}
-		}
-	}
-
-	/** 注入 SKILL.md → 引用檔案的邊（vault 內） */
-	private injectEdges(renderer: GraphRenderer): void {
-		// 建立 node id → node 的查找表
-		const nodeById = new Map<string, GraphNode>();
-		for (const node of renderer.nodes) {
-			nodeById.set(node.id, node);
-		}
-
-		for (const [filePath, skillInfo] of this.skillMap) {
-			const sourceNode = nodeById.get(filePath);
-			if (!sourceNode) continue;
-
-			for (const refPath of skillInfo.references) {
-				const targetNode = nodeById.get(refPath);
-				if (!targetNode) continue;
-
-				// 檢查是否已有這條邊
-				const edgeExists = renderer.edges.some(
-					(e) => e.source === sourceNode && e.target === targetNode
-				);
-				if (!edgeExists) {
-					// 標記為 plugin 注入的邊，cleanup 時可識別並移除
-					renderer.edges.push({
-						source: sourceNode,
-						target: targetNode,
-						_skillGraphInjected: true,
-					});
+			// 節點改名：只對 SKILL.md 節點
+			if (!node._skillGraphPatched) {
+				const skillInfo = this.skillMap.get(node.id);
+				if (skillInfo) {
+					// 儲存原始文字，cleanup 時恢復
+					node._originalDisplayText = node.text._text;
+					// 直接修改 PixiJS Text 物件的文字內容
+					node.text._text = skillInfo.displayName;
+					node.text.dirty = true;
+					node.getDisplayText = () => skillInfo.displayName;
+					node._skillGraphPatched = true;
 				}
 			}
+
+			// 上色：每次都重新套用（因為 renderer 可能重設顏色）
+			const nodeType = this.getNodeType(node);
+			if (nodeType) {
+				node.color = { a: 1, rgb: this.hexToInt(this.getColorForType(nodeType)) };
+			}
 		}
+	}
+
+	/** 判斷節點類型 */
+	private getNodeType(node: GraphNode): "skill" | "local-ref" | null {
+		if (this.skillMap.has(node.id)) return "skill";
+		if (this.localRefPaths.has(node.id)) return "local-ref";
+		return null;
+	}
+
+	/** 依類型回傳顏色 hex string */
+	private getColorForType(type: "skill" | "local-ref"): string {
+		switch (type) {
+			case "skill":
+				return this.settings.colorSkill;
+			case "local-ref":
+				return this.settings.colorLocalRef;
+		}
+	}
+
+	/** 將 hex 色碼轉為整數格式（0xRRGGBB） */
+	private hexToInt(hex: string): number {
+		return parseInt(hex.replace("#", ""), 16);
 	}
 
 	/** 清除所有 patch，恢復原始狀態（plugin unload 時用） */
@@ -93,18 +114,15 @@ export class GraphPatcher {
 			const view = leaf.view as unknown as GraphView;
 			const renderer = view?.renderer;
 			if (!renderer?.nodes) continue;
+
 			for (const node of renderer.nodes) {
-				// 恢復原始的 getDisplayText
-				if (node._originalGetDisplayText) {
-					node.getDisplayText = node._originalGetDisplayText;
+				if (node._originalDisplayText !== undefined) {
+					node.text._text = node._originalDisplayText;
+					node.text.dirty = true;
 				}
 				delete node._skillGraphPatched;
-				delete node._originalGetDisplayText;
+				delete node._originalDisplayText;
 			}
-			// 移除所有 plugin 注入的邊，恢復原始 edges 陣列
-			renderer.edges = renderer.edges.filter(
-				(e) => !e._skillGraphInjected
-			);
 		}
 	}
 }
