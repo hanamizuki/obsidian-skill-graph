@@ -155,15 +155,13 @@ This plugin relies on the following undocumented Obsidian internals (confirmed v
 ## Known Limitations
 
 - **Desktop only**: Uses Node.js `fs` and `vault.adapter.basePath`; not compatible with mobile.
-- **Files outside the vault are not shown**: Workspace shared resources (e.g. `references/branding/`, `social/profiles/`) that live outside the vault directory will not appear in the graph.
+- **External files are virtual nodes**: Out-of-vault files appear as nodes but cannot be opened (clicking creates a blank note). Use the symlink workaround or wait for v2 auto-symlink.
 - **Edges are undirected**: Obsidian graph links have no arrows, so the direction of a "SKILL.md references scripts" relationship is not visible.
-- **`~` paths are not resolved**: Paths like `~/workspace/...` are currently ignored.
 
 ## Future Plans (v2)
 
-- **Virtual nodes**: Display global skills (`.openclaw/skills/`) and workspace shared files as virtual nodes even when they are outside the vault.
-- **`~` path support**: Expand `~` to the real path and match against the vault.
-- **Node tooltips**: Show SKILL.md description on hover.
+- **Auto-symlink external references**: Automatically create symlinks in a `.external/` directory for out-of-vault files referenced by skills. This turns virtual nodes into real files that can be opened and browsed in Obsidian. Symlinks are cleaned up when the plugin is disabled. Desktop only (uses `ln -s` / `mklink /J`). Prior art: [obsidian-symlink-plugin](https://github.com/pteridin/obsidian_symlink_plugin).
+- **Node tooltips**: Show SKILL.md `description` on hover.
 
 ## License
 
