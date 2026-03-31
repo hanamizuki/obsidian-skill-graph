@@ -2,15 +2,15 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import type SkillGraphPlugin from "./main";
 
 export interface SkillGraphSettings {
-	/** 要掃描的檔名，預設 "SKILL.md" */
+	/** Filename to scan for skills, default "SKILL.md" */
 	skillFileName: string;
-	/** frontmatter 中用來當 display name 的欄位 */
+	/** Frontmatter field to use as the display name */
 	nameField: string;
-	/** Skill 主節點顏色 */
+	/** Color for skill root nodes */
 	colorSkill: string;
-	/** 本地引用節點顏色（被 SKILL.md 引用的 references/scripts） */
+	/** Color for local reference nodes (files referenced by SKILL.md, e.g. references/, scripts/) */
 	colorLocalRef: string;
-	/** 外部引用節點顏色（vault 外的 workspace 檔案） */
+	/** Color for external reference nodes (files outside the vault) */
 	colorExternalRef: string;
 }
 

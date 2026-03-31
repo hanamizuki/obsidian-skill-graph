@@ -3,14 +3,14 @@ import { parseReferences } from "./parse-references";
 import type { SkillInfo } from "./types";
 
 /**
- * 掃描 vault 中的 SKILL.md 並解析技能資訊。
- * 監聽 metadata cache 變更做增量更新。
+ * Scans all SKILL.md files in the vault and parses skill information.
+ * Listens to metadata cache changes for incremental updates.
  */
 export class SkillParser {
 	private app: App;
 	private skillFileName: string;
 	private nameField: string;
-	/** 全域技能資訊 Map，key = vault 內相對路徑 */
+	/** Global skill info map, keyed by vault-relative file path */
 	skillMap: Map<string, SkillInfo> = new Map();
 
 	constructor(app: App, skillFileName: string, nameField: string) {
@@ -19,7 +19,7 @@ export class SkillParser {
 		this.nameField = nameField;
 	}
 
-	/** 更新設定後重新掃描 */
+	/** Update settings and re-scan */
 	async updateSettings(
 		skillFileName: string,
 		nameField: string
@@ -29,7 +29,7 @@ export class SkillParser {
 		await this.fullScan();
 	}
 
-	/** 全量掃描 vault 中所有 SKILL.md */
+	/** Full scan of all SKILL.md files in the vault */
 	async fullScan(): Promise<void> {
 		this.skillMap.clear();
 		const files = this.app.vault.getFiles();
@@ -42,40 +42,40 @@ export class SkillParser {
 		await Promise.all(promises);
 	}
 
-	/** 單一檔案解析 */
+	/** Parse a single SKILL.md file */
 	async parseSkillFile(file: TFile): Promise<void> {
 		if (file.name !== this.skillFileName) return;
 
-		// 取 frontmatter name
+		// Read display name from frontmatter
 		const cache = this.app.metadataCache.getFileCache(file);
 		const displayName =
 			cache?.frontmatter?.[this.nameField] ??
 			file.parent?.name ??
 			file.basename;
 
-		// 讀取內文
+		// Read file content
 		const text = await this.app.vault.cachedRead(file);
 
-		// 解析引用
+		// Parse references from content
 		const { relativePaths, absolutePaths } = parseReferences(text);
 		const dir = file.parent?.path ?? "";
 		const references: string[] = [];
 		const unresolvedRefs: string[] = [];
 
-		// 處理相對路徑
+		// Resolve relative paths
 		for (const ref of relativePaths) {
 			const resolved = this.resolveRefPath(ref, dir);
 			if (resolved) {
 				references.push(resolved);
 			} else {
-				// 過濾掉含 placeholder 的路徑（如 [市場]、YYYY-MM 等）
+				// Skip paths with placeholders (e.g. [market], YYYY-MM)
 				if (!/[\[\]{}]/.test(ref) && !/YYYY/.test(ref)) {
 					unresolvedRefs.push(ref);
 				}
 			}
 		}
 
-		// 處理絕對路徑：比對 vault 路徑前綴，轉成 vault 相對路徑
+		// Resolve absolute paths: strip vault base path prefix to get vault-relative path
 		const vaultBasePath = (this.app.vault.adapter as any).basePath as string | undefined;
 		if (vaultBasePath) {
 			for (const absPath of absolutePaths) {
@@ -83,7 +83,7 @@ export class SkillParser {
 				if (vaultRelative && this.app.vault.getAbstractFileByPath(vaultRelative)) {
 					references.push(vaultRelative);
 				}
-				// 絕對路徑找不到時不加入 unresolvedRefs（可能是其他機器的路徑）
+				// Absolute paths that don't match are silently ignored (may be from another machine)
 			}
 		}
 
@@ -96,27 +96,28 @@ export class SkillParser {
 	}
 
 	/**
-	 * 嘗試多種策略解析引用路徑，回傳 vault 內的路徑。
-	 * 策略順序：
-	 * 1. 相對於 SKILL.md 所在目錄（如 scripts/run.sh → content-planner/scripts/run.sh）
-	 * 2. 直接從 vault 根目錄（如 content-analysis/SKILL.md）
-	 * 3. 去掉 vault 資料夾名前綴（如 skills/content-analysis/SKILL.md → content-analysis/SKILL.md）
+	 * Tries multiple strategies to resolve a reference path to a vault file path.
+	 * Strategy order:
+	 * 1. Relative to the SKILL.md's parent directory (e.g. scripts/run.sh → content-planner/scripts/run.sh)
+	 * 2. Directly from vault root (e.g. content-analysis/SKILL.md)
+	 * 3. Strip the first path segment (e.g. skills/content-analysis/SKILL.md → content-analysis/SKILL.md,
+	 *    for workspace-relative paths when vault root equals skills/)
 	 */
 	private resolveRefPath(ref: string, parentDir: string): string | null {
-		// 策略 1：相對於 SKILL.md 的父目錄
+		// Strategy 1: relative to SKILL.md's parent directory
 		const relPath = parentDir ? `${parentDir}/${ref}` : ref;
 		if (this.app.vault.getAbstractFileByPath(relPath)) {
 			return relPath;
 		}
 
-		// 策略 2：從 vault 根目錄直接查找
+		// Strategy 2: from vault root
 		if (this.app.vault.getAbstractFileByPath(ref)) {
 			return ref;
 		}
 
-		// 策略 3：去掉第一層目錄前綴再查找
-		// 處理 workspace 相對路徑（如 skills/content-analysis/SKILL.md）
-		// 當 vault 根目錄就是 skills/ 時，需要去掉 skills/ 前綴
+		// Strategy 3: strip first path segment
+		// Handles workspace-relative paths (e.g. skills/content-analysis/SKILL.md)
+		// when vault root is skills/
 		const slashIdx = ref.indexOf("/");
 		if (slashIdx !== -1) {
 			const stripped = ref.substring(slashIdx + 1);
@@ -129,15 +130,16 @@ export class SkillParser {
 	}
 
 	/**
-	 * 將絕對路徑轉為 vault 內相對路徑。
-	 * 只做精確前綴比對，不做模糊比對（避免同名資料夾誤判）。
+	 * Converts an absolute path to a vault-relative path.
+	 * Uses exact prefix matching only (no fuzzy matching) to avoid false positives.
 	 *
-	 * 例如 vault = /Users/Hana/OpenClaw/mojo/skills：
+	 * Example — vault = /Users/Hana/OpenClaw/mojo/skills:
 	 *   /Users/Hana/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py
 	 *   → threads-reply/scripts/fetch.py
 	 *
-	 * 注意：如果 SKILL.md 寫了其他機器的絕對路徑（如 /Users/harb/...），
-	 * 這裡不會比對到。應該修正 SKILL.md 改用 {baseDir}/ 相對路徑。
+	 * Note: Absolute paths from other machines (e.g. /Users/harb/...) will not
+	 * match and are silently ignored. SKILL.md files should use {baseDir}/-relative
+	 * paths instead.
 	 */
 	private absoluteToVaultPath(absPath: string, vaultBasePath: string): string | null {
 		const prefix = vaultBasePath.endsWith("/") ? vaultBasePath : vaultBasePath + "/";
@@ -147,14 +149,14 @@ export class SkillParser {
 		return null;
 	}
 
-	/** metadata cache 變更時的回呼 */
+	/** Called when the metadata cache reports a file change */
 	async onMetadataChanged(file: TFile): Promise<void> {
 		if (file.name === this.skillFileName) {
 			await this.parseSkillFile(file);
 		}
 	}
 
-	/** 移除被刪除檔案的資訊 */
+	/** Remove a deleted file's entry from the skill map */
 	onFileDeleted(filePath: string): void {
 		this.skillMap.delete(filePath);
 	}

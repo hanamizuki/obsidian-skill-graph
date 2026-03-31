@@ -14,7 +14,7 @@ export default class SkillGraphPlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		// 初始化模組
+		// Initialize modules
 		this.parser = new SkillParser(
 			this.app,
 			this.settings.skillFileName,
@@ -22,14 +22,14 @@ export default class SkillGraphPlugin extends Plugin {
 		);
 		this.patcher = new GraphPatcher(this.app, this.parser.skillMap, this.settings);
 
-		// 等 vault 載入完成後再全量掃描
+		// Wait for vault to finish loading before running full scan
 		this.app.workspace.onLayoutReady(async () => {
 			await this.parser.fullScan();
 			this.injectLinks();
 			this.patcher.patchAllGraphs();
 		});
 
-		// 監聽 metadata cache 變更（SKILL.md 被編輯時）
+		// Listen for metadata cache changes (when SKILL.md is edited)
 		this.registerEvent(
 			this.app.metadataCache.on("changed", async (file: TFile) => {
 				await this.parser.onMetadataChanged(file);
@@ -38,7 +38,7 @@ export default class SkillGraphPlugin extends Plugin {
 			})
 		);
 
-		// 監聽檔案刪除
+		// Listen for file deletions
 		this.registerEvent(
 			this.app.vault.on("delete", (file) => {
 				this.parser.onFileDeleted(file.path);
@@ -46,7 +46,7 @@ export default class SkillGraphPlugin extends Plugin {
 			})
 		);
 
-		// 監聽檔案重新命名：先清除舊路徑的 skillMap，再重新解析新路徑
+		// Listen for file renames: clear old path from skillMap, then re-parse new path
 		this.registerEvent(
 			this.app.vault.on("rename", async (file, oldPath) => {
 				this.parser.onFileDeleted(oldPath);
@@ -60,19 +60,19 @@ export default class SkillGraphPlugin extends Plugin {
 			})
 		);
 
-		// 監聽 layout 變更（graph view 開啟/切換時），debounce 避免頻繁觸發
+		// Listen for layout changes (graph view open/switch), debounced to avoid excessive triggers
 		this.registerEvent(
 			this.app.workspace.on("layout-change", () => {
 				this.debouncedPatch();
 			})
 		);
 
-		// 設定頁面
+		// Register settings tab
 		this.addSettingTab(new SkillGraphSettingTab(this.app, this));
 	}
 
 	onunload() {
-		// 清除 debounce timer
+		// Clear debounce timer
 		if (this.patchTimer !== null) {
 			window.clearTimeout(this.patchTimer);
 		}
@@ -90,7 +90,7 @@ export default class SkillGraphPlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		// 設定變更時重新掃描
+		// Re-scan when settings change
 		await this.parser.updateSettings(
 			this.settings.skillFileName,
 			this.settings.nameField
@@ -100,9 +100,9 @@ export default class SkillGraphPlugin extends Plugin {
 	}
 
 	/**
-	 * 在 metadataCache 注入連結：
-	 * - resolvedLinks：vault 內的引用（graph 顯示實線）
-	 * - unresolvedLinks：vault 外的引用（graph 顯示虛擬節點）
+	 * Inject links into metadataCache:
+	 * - resolvedLinks: in-vault references (graph shows solid lines)
+	 * - unresolvedLinks: out-of-vault references (graph shows virtual nodes)
 	 */
 	private injectLinks(): void {
 		const resolvedLinks = this.app.metadataCache.resolvedLinks;
@@ -110,7 +110,7 @@ export default class SkillGraphPlugin extends Plugin {
 			Record<string, Record<string, number>> | undefined;
 
 		for (const [skillPath, skillInfo] of this.parser.skillMap) {
-			// 注入 vault 內引用到 resolvedLinks
+			// Inject in-vault references into resolvedLinks
 			if (!resolvedLinks[skillPath]) {
 				resolvedLinks[skillPath] = {};
 			}
@@ -118,7 +118,7 @@ export default class SkillGraphPlugin extends Plugin {
 				resolvedLinks[skillPath][refPath] = (resolvedLinks[skillPath][refPath] ?? 0) + 1;
 			}
 
-			// 注入 vault 外引用到 unresolvedLinks（顯示為虛擬節點）
+			// Inject out-of-vault references into unresolvedLinks (displayed as virtual nodes)
 			if (unresolvedLinks && skillInfo.unresolvedRefs.length > 0) {
 				if (!unresolvedLinks[skillPath]) {
 					unresolvedLinks[skillPath] = {};
@@ -131,7 +131,7 @@ export default class SkillGraphPlugin extends Plugin {
 	}
 
 	/**
-	 * 清除之前注入的 resolvedLinks 和 unresolvedLinks。
+	 * Remove previously injected resolvedLinks and unresolvedLinks.
 	 */
 	private cleanupLinks(): void {
 		const resolvedLinks = this.app.metadataCache.resolvedLinks;
@@ -152,7 +152,7 @@ export default class SkillGraphPlugin extends Plugin {
 		}
 	}
 
-	/** Debounced patch — 200ms 內重複觸發只執行一次 */
+	/** Debounced patch — fires at most once per 200ms burst */
 	private debouncedPatch(): void {
 		if (this.patchTimer !== null) {
 			window.clearTimeout(this.patchTimer);

@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-skill-graph",
 	"version": "0.1.0",
-	"description": "Obsidian plugin to visualize skill structures in graph view",
+	"description": "Obsidian plugin to visualize agent skill structures in graph view",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
