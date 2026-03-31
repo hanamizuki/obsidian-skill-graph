@@ -1,4 +1,6 @@
 import { App, TFile } from "obsidian";
+import { readFileSync } from "fs";
+import { homedir } from "os";
 import { parseReferences } from "./parse-references";
 import type { SkillInfo } from "./types";
 
@@ -87,11 +89,21 @@ export class SkillParser {
 			}
 		}
 
+		// Try to read display names from external files' frontmatter
+		const externalDisplayNames = new Map<string, string>();
+		for (const ref of unresolvedRefs) {
+			const extName = this.readExternalFrontmatterName(ref);
+			if (extName) {
+				externalDisplayNames.set(ref, extName);
+			}
+		}
+
 		this.skillMap.set(file.path, {
 			filePath: file.path,
 			displayName,
 			references,
 			unresolvedRefs,
+			externalDisplayNames,
 		});
 	}
 
@@ -144,6 +156,30 @@ export class SkillParser {
 		const prefix = vaultBasePath.endsWith("/") ? vaultBasePath : vaultBasePath + "/";
 		if (absPath.startsWith(prefix)) {
 			return absPath.substring(prefix.length);
+		}
+		return null;
+	}
+
+	/**
+	 * Try to read the frontmatter `name` from an external file on disk.
+	 * Expands ~ to the user's home directory. Returns null on failure.
+	 */
+	private readExternalFrontmatterName(refPath: string): string | null {
+		try {
+			let absPath = refPath;
+			if (absPath.startsWith("~/")) {
+				absPath = homedir() + absPath.substring(1);
+			}
+			const content = readFileSync(absPath, "utf-8");
+			const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+			if (fmMatch) {
+				const nameMatch = fmMatch[1]!.match(/^name:\s*(.+)$/m);
+				if (nameMatch) {
+					return nameMatch[1]!.replace(/^["']|["']$/g, "").trim();
+				}
+			}
+		} catch {
+			// File doesn't exist or can't be read — silently skip
 		}
 		return null;
 	}

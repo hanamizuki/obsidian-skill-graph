@@ -16,6 +16,8 @@ export class GraphPatcher {
 	private localRefPaths: Set<string> = new Set();
 	/** All out-of-vault file paths referenced by any skill (injected via unresolvedLinks) */
 	private externalRefPaths: Set<string> = new Set();
+	/** Display names for external refs (from frontmatter) */
+	private externalDisplayNames: Map<string, string> = new Map();
 
 	constructor(app: App, skillMap: Map<string, SkillInfo>, settings: SkillGraphSettings) {
 		this.app = app;
@@ -28,16 +30,20 @@ export class GraphPatcher {
 		this.settings = settings;
 	}
 
-	/** Rebuild the reference path sets from the current skill map */
+	/** Rebuild the reference path sets and external display names from the current skill map */
 	private refreshRefPaths(): void {
 		this.localRefPaths.clear();
 		this.externalRefPaths.clear();
+		this.externalDisplayNames.clear();
 		for (const info of this.skillMap.values()) {
 			for (const ref of info.references) {
 				this.localRefPaths.add(ref);
 			}
 			for (const ext of info.unresolvedRefs) {
 				this.externalRefPaths.add(ext);
+			}
+			for (const [path, name] of info.externalDisplayNames) {
+				this.externalDisplayNames.set(path, name);
 			}
 		}
 	}
@@ -67,16 +73,24 @@ export class GraphPatcher {
 	/** Override node labels and apply colors */
 	private patchNodes(renderer: GraphRenderer): void {
 		for (const node of renderer.nodes) {
-			// Rename: only apply once per SKILL.md node
+			// Rename: only apply once per node
 			if (!node._skillGraphPatched) {
+				// Check if this is a SKILL.md node (in skillMap)
 				const skillInfo = this.skillMap.get(node.id);
 				if (skillInfo) {
-					// Store original text so it can be restored on cleanup
 					node._originalDisplayText = node.text._text;
-					// Directly set the PixiJS Text object's content
 					node.text._text = skillInfo.displayName;
 					node.text.dirty = true;
 					node.getDisplayText = () => skillInfo.displayName;
+					node._skillGraphPatched = true;
+				}
+				// Check if this is an external ref with a known display name
+				const extName = this.externalDisplayNames.get(node.id);
+				if (extName) {
+					node._originalDisplayText = node.text._text;
+					node.text._text = extName;
+					node.text.dirty = true;
+					node.getDisplayText = () => extName;
 					node._skillGraphPatched = true;
 				}
 			}

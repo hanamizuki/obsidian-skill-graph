@@ -10,6 +10,8 @@ export interface SkillInfo {
 	references: string[];
 	/** Reference paths that could not be resolved to a file inside the vault */
 	unresolvedRefs: string[];
+	/** Display names for unresolved refs (read from external file frontmatter) */
+	externalDisplayNames: Map<string, string>;
 }
 
 // === Obsidian undocumented API type extensions ===
