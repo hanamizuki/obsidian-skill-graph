@@ -25,7 +25,7 @@ export default class SkillGraphPlugin extends Plugin {
 		// 等 vault 載入完成後再全量掃描
 		this.app.workspace.onLayoutReady(async () => {
 			await this.parser.fullScan();
-			this.injectResolvedLinks();
+			this.injectLinks();
 			this.patcher.patchAllGraphs();
 		});
 
@@ -33,7 +33,7 @@ export default class SkillGraphPlugin extends Plugin {
 		this.registerEvent(
 			this.app.metadataCache.on("changed", async (file: TFile) => {
 				await this.parser.onMetadataChanged(file);
-				this.injectResolvedLinks();
+				this.injectLinks();
 				this.debouncedPatch();
 			})
 		);
@@ -76,7 +76,7 @@ export default class SkillGraphPlugin extends Plugin {
 		if (this.patchTimer !== null) {
 			window.clearTimeout(this.patchTimer);
 		}
-		this.cleanupResolvedLinks();
+		this.cleanupLinks();
 		this.patcher.cleanup();
 	}
 
@@ -100,33 +100,53 @@ export default class SkillGraphPlugin extends Plugin {
 	}
 
 	/**
-	 * 在 metadataCache.resolvedLinks 注入 SKILL.md → 引用檔案的連結。
-	 * 這樣 Obsidian graph 會自動建立正確的 PixiJS link 物件。
+	 * 在 metadataCache 注入連結：
+	 * - resolvedLinks：vault 內的引用（graph 顯示實線）
+	 * - unresolvedLinks：vault 外的引用（graph 顯示虛擬節點）
 	 */
-	private injectResolvedLinks(): void {
+	private injectLinks(): void {
 		const resolvedLinks = this.app.metadataCache.resolvedLinks;
+		const unresolvedLinks = (this.app.metadataCache as any).unresolvedLinks as
+			Record<string, Record<string, number>> | undefined;
+
 		for (const [skillPath, skillInfo] of this.parser.skillMap) {
-			// 確保 SKILL.md 在 resolvedLinks 中有 entry
+			// 注入 vault 內引用到 resolvedLinks
 			if (!resolvedLinks[skillPath]) {
 				resolvedLinks[skillPath] = {};
 			}
-			// 注入每個引用檔案的連結
 			for (const refPath of skillInfo.references) {
 				resolvedLinks[skillPath][refPath] = (resolvedLinks[skillPath][refPath] ?? 0) + 1;
+			}
+
+			// 注入 vault 外引用到 unresolvedLinks（顯示為虛擬節點）
+			if (unresolvedLinks && skillInfo.unresolvedRefs.length > 0) {
+				if (!unresolvedLinks[skillPath]) {
+					unresolvedLinks[skillPath] = {};
+				}
+				for (const extRef of skillInfo.unresolvedRefs) {
+					unresolvedLinks[skillPath][extRef] = (unresolvedLinks[skillPath][extRef] ?? 0) + 1;
+				}
 			}
 		}
 	}
 
 	/**
-	 * 清除之前注入的 resolvedLinks（避免累積）。
-	 * 只移除由 plugin 注入的連結（追蹤在 injectedLinks 中）。
+	 * 清除之前注入的 resolvedLinks 和 unresolvedLinks。
 	 */
-	private cleanupResolvedLinks(): void {
+	private cleanupLinks(): void {
 		const resolvedLinks = this.app.metadataCache.resolvedLinks;
+		const unresolvedLinks = (this.app.metadataCache as any).unresolvedLinks as
+			Record<string, Record<string, number>> | undefined;
+
 		for (const [skillPath, skillInfo] of this.parser.skillMap) {
 			if (resolvedLinks[skillPath]) {
 				for (const refPath of skillInfo.references) {
 					delete resolvedLinks[skillPath][refPath];
+				}
+			}
+			if (unresolvedLinks?.[skillPath]) {
+				for (const extRef of skillInfo.unresolvedRefs) {
+					delete unresolvedLinks[skillPath][extRef];
 				}
 			}
 		}

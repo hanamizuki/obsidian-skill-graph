@@ -6,8 +6,10 @@ export interface SkillInfo {
 	filePath: string;
 	/** frontmatter 的 name 欄位值 */
 	displayName: string;
-	/** vault 內被引用的檔案路徑 */
+	/** vault 內被引用的檔案路徑（已確認存在） */
 	references: string[];
+	/** vault 外的引用路徑（解析失敗，檔案不在 vault 內） */
+	unresolvedRefs: string[];
 }
 
 // === Obsidian undocumented API type extensions ===

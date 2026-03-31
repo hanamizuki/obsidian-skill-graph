@@ -60,12 +60,18 @@ export class SkillParser {
 		const { relativePaths, absolutePaths } = parseReferences(text);
 		const dir = file.parent?.path ?? "";
 		const references: string[] = [];
+		const unresolvedRefs: string[] = [];
 
 		// 處理相對路徑
 		for (const ref of relativePaths) {
 			const resolved = this.resolveRefPath(ref, dir);
 			if (resolved) {
 				references.push(resolved);
+			} else {
+				// 過濾掉含 placeholder 的路徑（如 [市場]、YYYY-MM 等）
+				if (!/[\[\]{}]/.test(ref) && !/YYYY/.test(ref)) {
+					unresolvedRefs.push(ref);
+				}
 			}
 		}
 
@@ -77,6 +83,7 @@ export class SkillParser {
 				if (vaultRelative && this.app.vault.getAbstractFileByPath(vaultRelative)) {
 					references.push(vaultRelative);
 				}
+				// 絕對路徑找不到時不加入 unresolvedRefs（可能是其他機器的路徑）
 			}
 		}
 
@@ -84,6 +91,7 @@ export class SkillParser {
 			filePath: file.path,
 			displayName,
 			references,
+			unresolvedRefs,
 		});
 	}
 
