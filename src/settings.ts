@@ -10,6 +10,8 @@ export interface SkillGraphSettings {
 	colorSkill: string;
 	/** 本地引用節點顏色（被 SKILL.md 引用的 references/scripts） */
 	colorLocalRef: string;
+	/** 外部引用節點顏色（vault 外的 workspace 檔案） */
+	colorExternalRef: string;
 }
 
 export const DEFAULT_SETTINGS: SkillGraphSettings = {
@@ -17,6 +19,7 @@ export const DEFAULT_SETTINGS: SkillGraphSettings = {
 	nameField: "name",
 	colorSkill: "#4a9eff",
 	colorLocalRef: "#a0c4e8",
+	colorExternalRef: "#c4a0e8",
 };
 
 export class SkillGraphSettingTab extends PluginSettingTab {
@@ -72,13 +75,26 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Reference node color")
-			.setDesc("Hex color for referenced files (scripts/, references/)")
+			.setDesc("Hex color for referenced files within vault (scripts/, references/)")
 			.addText((text) =>
 				text
 					.setPlaceholder("#a0c4e8")
 					.setValue(this.plugin.settings.colorLocalRef)
 					.onChange(async (value) => {
 						this.plugin.settings.colorLocalRef = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("External reference color")
+			.setDesc("Hex color for files outside the vault (workspace shared resources)")
+			.addText((text) =>
+				text
+					.setPlaceholder("#c4a0e8")
+					.setValue(this.plugin.settings.colorExternalRef)
+					.onChange(async (value) => {
+						this.plugin.settings.colorExternalRef = value;
 						await this.plugin.saveSettings();
 					})
 			);

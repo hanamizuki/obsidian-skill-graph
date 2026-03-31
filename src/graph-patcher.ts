@@ -13,6 +13,8 @@ export class GraphPatcher {
 	private settings: SkillGraphSettings;
 	/** 所有被 skill 引用的 vault 內檔案路徑 */
 	private localRefPaths: Set<string> = new Set();
+	/** 所有被 skill 引用的 vault 外檔案路徑（unresolvedLinks 注入的） */
+	private externalRefPaths: Set<string> = new Set();
 
 	constructor(app: App, skillMap: Map<string, SkillInfo>, settings: SkillGraphSettings) {
 		this.app = app;
@@ -25,19 +27,23 @@ export class GraphPatcher {
 		this.settings = settings;
 	}
 
-	/** 重新計算哪些路徑是 local references */
-	private refreshLocalRefs(): void {
+	/** 重新計算引用路徑集合 */
+	private refreshRefPaths(): void {
 		this.localRefPaths.clear();
+		this.externalRefPaths.clear();
 		for (const info of this.skillMap.values()) {
 			for (const ref of info.references) {
 				this.localRefPaths.add(ref);
+			}
+			for (const ext of info.unresolvedRefs) {
+				this.externalRefPaths.add(ext);
 			}
 		}
 	}
 
 	/** 掃描所有 graph/localgraph leaf 並 patch */
 	patchAllGraphs(): void {
-		this.refreshLocalRefs();
+		this.refreshRefPaths();
 		const graphLeaves = [
 			...this.app.workspace.getLeavesOfType("graph"),
 			...this.app.workspace.getLeavesOfType("localgraph"),
@@ -83,19 +89,22 @@ export class GraphPatcher {
 	}
 
 	/** 判斷節點類型 */
-	private getNodeType(node: GraphNode): "skill" | "local-ref" | null {
+	private getNodeType(node: GraphNode): "skill" | "local-ref" | "external-ref" | null {
 		if (this.skillMap.has(node.id)) return "skill";
 		if (this.localRefPaths.has(node.id)) return "local-ref";
+		if (this.externalRefPaths.has(node.id)) return "external-ref";
 		return null;
 	}
 
 	/** 依類型回傳顏色 hex string */
-	private getColorForType(type: "skill" | "local-ref"): string {
+	private getColorForType(type: "skill" | "local-ref" | "external-ref"): string {
 		switch (type) {
 			case "skill":
 				return this.settings.colorSkill;
 			case "local-ref":
 				return this.settings.colorLocalRef;
+			case "external-ref":
+				return this.settings.colorExternalRef;
 		}
 	}
 
