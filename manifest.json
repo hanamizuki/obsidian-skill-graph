@@ -1,0 +1,9 @@
+{
+	"id": "obsidian-skill-graph",
+	"name": "Skill Graph",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "Visualize OpenClaw/Claude Code skill structures in graph view.",
+	"author": "Hana",
+	"isDesktopOnly": true
+}
