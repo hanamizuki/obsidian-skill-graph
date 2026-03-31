@@ -122,15 +122,35 @@ export class SkillParser {
 
 	/**
 	 * 將絕對路徑轉為 vault 內相對路徑。
-	 * 例如 /Users/harb/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py
-	 * → threads-reply/scripts/fetch.py（當 vault 為 /Users/.../mojo/skills）
+	 *
+	 * 策略 1：直接比對 vault 前綴
+	 *   /Users/Hana/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py
+	 *   vault = /Users/Hana/OpenClaw/mojo/skills → threads-reply/scripts/fetch.py
+	 *
+	 * 策略 2：取 vault 資料夾名，在絕對路徑中尋找同名段落
+	 *   /Users/harb/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py
+	 *   vault 資料夾名 = "skills" → 找到 .../skills/ 後取餘下路徑
+	 *   適用：同一 repo 在不同機器上路徑前綴不同（如 /Users/harb vs /Users/Hana）
 	 */
 	private absoluteToVaultPath(absPath: string, vaultBasePath: string): string | null {
-		// 確保 vaultBasePath 結尾有 /
+		// 策略 1：直接比對 vault 前綴
 		const prefix = vaultBasePath.endsWith("/") ? vaultBasePath : vaultBasePath + "/";
 		if (absPath.startsWith(prefix)) {
 			return absPath.substring(prefix.length);
 		}
+
+		// 策略 2：用 vault 資料夾名做模糊比對
+		// 從 vaultBasePath 取最後一個資料夾名（如 "skills"）
+		const vaultDirName = vaultBasePath.replace(/\/$/, "").split("/").pop();
+		if (vaultDirName) {
+			// 在絕對路徑中找 /skills/ 這個段落
+			const marker = `/${vaultDirName}/`;
+			const idx = absPath.indexOf(marker);
+			if (idx !== -1) {
+				return absPath.substring(idx + marker.length);
+			}
+		}
+
 		return null;
 	}
 
