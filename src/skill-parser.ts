@@ -56,14 +56,27 @@ export class SkillParser {
 		// 讀取內文
 		const text = await this.app.vault.cachedRead(file);
 
-		// 解析 vault 內引用
-		const rawRefs = parseReferences(text);
+		// 解析引用
+		const { relativePaths, absolutePaths } = parseReferences(text);
 		const dir = file.parent?.path ?? "";
 		const references: string[] = [];
-		for (const ref of rawRefs) {
+
+		// 處理相對路徑
+		for (const ref of relativePaths) {
 			const resolved = this.resolveRefPath(ref, dir);
 			if (resolved) {
 				references.push(resolved);
+			}
+		}
+
+		// 處理絕對路徑：比對 vault 路徑前綴，轉成 vault 相對路徑
+		const vaultBasePath = (this.app.vault.adapter as any).basePath as string | undefined;
+		if (vaultBasePath) {
+			for (const absPath of absolutePaths) {
+				const vaultRelative = this.absoluteToVaultPath(absPath, vaultBasePath);
+				if (vaultRelative && this.app.vault.getAbstractFileByPath(vaultRelative)) {
+					references.push(vaultRelative);
+				}
 			}
 		}
 
@@ -104,6 +117,20 @@ export class SkillParser {
 			}
 		}
 
+		return null;
+	}
+
+	/**
+	 * 將絕對路徑轉為 vault 內相對路徑。
+	 * 例如 /Users/harb/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py
+	 * → threads-reply/scripts/fetch.py（當 vault 為 /Users/.../mojo/skills）
+	 */
+	private absoluteToVaultPath(absPath: string, vaultBasePath: string): string | null {
+		// 確保 vaultBasePath 結尾有 /
+		const prefix = vaultBasePath.endsWith("/") ? vaultBasePath : vaultBasePath + "/";
+		if (absPath.startsWith(prefix)) {
+			return absPath.substring(prefix.length);
+		}
 		return null;
 	}
 
