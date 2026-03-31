@@ -25,6 +25,7 @@ export default class SkillGraphPlugin extends Plugin {
 		// 等 vault 載入完成後再全量掃描
 		this.app.workspace.onLayoutReady(async () => {
 			await this.parser.fullScan();
+			this.injectResolvedLinks();
 			this.patcher.patchAllGraphs();
 		});
 
@@ -32,6 +33,7 @@ export default class SkillGraphPlugin extends Plugin {
 		this.registerEvent(
 			this.app.metadataCache.on("changed", async (file: TFile) => {
 				await this.parser.onMetadataChanged(file);
+				this.injectResolvedLinks();
 				this.debouncedPatch();
 			})
 		);
@@ -74,6 +76,7 @@ export default class SkillGraphPlugin extends Plugin {
 		if (this.patchTimer !== null) {
 			window.clearTimeout(this.patchTimer);
 		}
+		this.cleanupResolvedLinks();
 		this.patcher.cleanup();
 	}
 
@@ -94,6 +97,39 @@ export default class SkillGraphPlugin extends Plugin {
 		);
 		this.patcher.updateSettings(this.settings);
 		this.patcher.patchAllGraphs();
+	}
+
+	/**
+	 * 在 metadataCache.resolvedLinks 注入 SKILL.md → 引用檔案的連結。
+	 * 這樣 Obsidian graph 會自動建立正確的 PixiJS link 物件。
+	 */
+	private injectResolvedLinks(): void {
+		const resolvedLinks = this.app.metadataCache.resolvedLinks;
+		for (const [skillPath, skillInfo] of this.parser.skillMap) {
+			// 確保 SKILL.md 在 resolvedLinks 中有 entry
+			if (!resolvedLinks[skillPath]) {
+				resolvedLinks[skillPath] = {};
+			}
+			// 注入每個引用檔案的連結
+			for (const refPath of skillInfo.references) {
+				resolvedLinks[skillPath][refPath] = (resolvedLinks[skillPath][refPath] ?? 0) + 1;
+			}
+		}
+	}
+
+	/**
+	 * 清除之前注入的 resolvedLinks（避免累積）。
+	 * 只移除由 plugin 注入的連結（追蹤在 injectedLinks 中）。
+	 */
+	private cleanupResolvedLinks(): void {
+		const resolvedLinks = this.app.metadataCache.resolvedLinks;
+		for (const [skillPath, skillInfo] of this.parser.skillMap) {
+			if (resolvedLinks[skillPath]) {
+				for (const refPath of skillInfo.references) {
+					delete resolvedLinks[skillPath][refPath];
+				}
+			}
+		}
 	}
 
 	/** Debounced patch — 200ms 內重複觸發只執行一次 */
