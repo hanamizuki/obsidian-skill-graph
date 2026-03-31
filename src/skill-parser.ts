@@ -61,12 +61,9 @@ export class SkillParser {
 		const dir = file.parent?.path ?? "";
 		const references: string[] = [];
 		for (const ref of rawRefs) {
-			// 以 SKILL.md 所在目錄為基準解析相對路徑
-			const fullPath = dir ? `${dir}/${ref}` : ref;
-			// 確認檔案存在於 vault
-			const target = this.app.vault.getAbstractFileByPath(fullPath);
-			if (target) {
-				references.push(fullPath);
+			const resolved = this.resolveRefPath(ref, dir);
+			if (resolved) {
+				references.push(resolved);
 			}
 		}
 
@@ -75,6 +72,39 @@ export class SkillParser {
 			displayName,
 			references,
 		});
+	}
+
+	/**
+	 * 嘗試多種策略解析引用路徑，回傳 vault 內的路徑。
+	 * 策略順序：
+	 * 1. 相對於 SKILL.md 所在目錄（如 scripts/run.sh → content-planner/scripts/run.sh）
+	 * 2. 直接從 vault 根目錄（如 content-analysis/SKILL.md）
+	 * 3. 去掉 vault 資料夾名前綴（如 skills/content-analysis/SKILL.md → content-analysis/SKILL.md）
+	 */
+	private resolveRefPath(ref: string, parentDir: string): string | null {
+		// 策略 1：相對於 SKILL.md 的父目錄
+		const relPath = parentDir ? `${parentDir}/${ref}` : ref;
+		if (this.app.vault.getAbstractFileByPath(relPath)) {
+			return relPath;
+		}
+
+		// 策略 2：從 vault 根目錄直接查找
+		if (this.app.vault.getAbstractFileByPath(ref)) {
+			return ref;
+		}
+
+		// 策略 3：去掉第一層目錄前綴再查找
+		// 處理 workspace 相對路徑（如 skills/content-analysis/SKILL.md）
+		// 當 vault 根目錄就是 skills/ 時，需要去掉 skills/ 前綴
+		const slashIdx = ref.indexOf("/");
+		if (slashIdx !== -1) {
+			const stripped = ref.substring(slashIdx + 1);
+			if (this.app.vault.getAbstractFileByPath(stripped)) {
+				return stripped;
+			}
+		}
+
+		return null;
 	}
 
 	/** metadata cache 變更時的回呼 */
