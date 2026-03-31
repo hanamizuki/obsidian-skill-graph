@@ -64,24 +64,23 @@ describe("parseReferences — relativePaths", () => {
 		expect(absolutePaths).toHaveLength(0);
 	});
 
-	it("ignores ~ paths", () => {
+	it("collects ~ paths as relative paths (for unresolved display)", () => {
 		const text = "Uses `~/workspace/scout/threads/threads.db` for data.";
 		const { relativePaths, absolutePaths } = parseReferences(text);
-		expect(relativePaths).toHaveLength(0);
+		expect(relativePaths).toContain("~/workspace/scout/threads/threads.db");
 		expect(absolutePaths).toHaveLength(0);
 	});
 
-	it("ignores .openclaw/skills/ paths (handled separately)", () => {
+	it("collects .openclaw/skills/ paths via ~ prefix", () => {
 		const text = "Uses `~/.openclaw/skills/check-traces/SKILL.md` for tracing.";
-		const { relativePaths, absolutePaths } = parseReferences(text);
-		expect(relativePaths).toHaveLength(0);
-		expect(absolutePaths).toHaveLength(0);
+		const { relativePaths } = parseReferences(text);
+		expect(relativePaths).toContain("~/.openclaw/skills/check-traces/SKILL.md");
 	});
 
-	it("ignores .openclaw/skills/ path without ~ prefix", () => {
+	it("collects .openclaw/skills/ path without ~ prefix", () => {
 		const text = "Uses `.openclaw/skills/foo/SKILL.md` for something.";
 		const { relativePaths } = parseReferences(text);
-		expect(relativePaths).not.toContain(".openclaw/skills/foo/SKILL.md");
+		expect(relativePaths).toContain(".openclaw/skills/foo/SKILL.md");
 	});
 });
 

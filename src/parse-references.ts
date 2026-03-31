@@ -19,15 +19,20 @@ export function parseReferences(text: string): ParseResult {
 	const collect = (p: string) => {
 		// Ignore URLs
 		if (/^https?:\/\//.test(p)) return;
-		// Ignore home-directory paths (~)
-		if (p.startsWith("~")) return;
-		// Ignore .openclaw/skills/ paths (handled by a separate module)
-		if (p.includes(".openclaw/skills/")) return;
 
 		// Absolute paths: hand off to skill-parser for vault prefix matching
 		if (p.startsWith("/")) {
 			if (looksLikeFilePath(p)) {
 				absolutePaths.add(p);
+			}
+			return;
+		}
+
+		// ~ paths (e.g. ~/workspace/.openclaw/skills/foo/SKILL.md):
+		// keep as-is for unresolvedRefs display
+		if (p.startsWith("~")) {
+			if (looksLikeFilePath(p)) {
+				relativePaths.add(p);
 			}
 			return;
 		}
