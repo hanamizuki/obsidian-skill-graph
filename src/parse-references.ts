@@ -21,8 +21,7 @@ export function parseReferences(text: string): string[] {
 	for (const match of text.matchAll(backtickRegex)) {
 		const p = match[1]!;
 		if (isIgnored(p)) continue;
-		// 處理 {baseDir} 前綴，去掉後取得相對路徑
-		const cleaned = p.replace(/^\{baseDir\}\//, "");
+		const cleaned = stripBaseDir(p);
 		if (looksLikeFilePath(cleaned)) {
 			paths.add(cleaned);
 		}
@@ -33,22 +32,29 @@ export function parseReferences(text: string): string[] {
 	for (const match of text.matchAll(mdLinkRegex)) {
 		const p = match[2]!;
 		if (isIgnored(p)) continue;
-		if (looksLikeFilePath(p)) {
-			paths.add(p);
+		const cleaned = stripBaseDir(p);
+		if (looksLikeFilePath(cleaned)) {
+			paths.add(cleaned);
 		}
 	}
 
 	// 模式 3：CLI 指令後的路徑 (python3/bash/node/sh + path)
-	const cliRegex = /(?:python3?|bash|node|sh)\s+([\w./-]+\.\w+)/g;
+	const cliRegex = /(?:python3?|bash|node|sh)\s+([\w.{}/.-]+\.\w+)/g;
 	for (const match of text.matchAll(cliRegex)) {
 		const p = match[1]!;
 		if (isIgnored(p)) continue;
-		if (looksLikeFilePath(p)) {
-			paths.add(p);
+		const cleaned = stripBaseDir(p);
+		if (looksLikeFilePath(cleaned)) {
+			paths.add(cleaned);
 		}
 	}
 
 	return [...paths];
+}
+
+/** 移除 {baseDir}/ 前綴，讓所有模式統一取得相對路徑 */
+function stripBaseDir(p: string): string {
+	return p.replace(/^\{baseDir\}\//, "");
 }
 
 /** 判斷是否為應忽略的路徑 */

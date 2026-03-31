@@ -66,4 +66,17 @@ describe("parseReferences", () => {
 		const result = parseReferences(text);
 		expect(result).not.toContain("~/.openclaw/skills/check-traces/SKILL.md");
 	});
+
+	it("extracts {baseDir} in markdown link and strips prefix", () => {
+		const text = "Run the script: [run]({baseDir}/scripts/run.sh)";
+		const result = parseReferences(text);
+		expect(result).toContain("scripts/run.sh");
+		expect(result).not.toContain("{baseDir}/scripts/run.sh");
+	});
+
+	it("ignores .openclaw/skills/ path without ~ prefix", () => {
+		const text = "Uses `.openclaw/skills/foo/SKILL.md` for something.";
+		const result = parseReferences(text);
+		expect(result).not.toContain(".openclaw/skills/foo/SKILL.md");
+	});
 });
