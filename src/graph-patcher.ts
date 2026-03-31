@@ -72,9 +72,11 @@ export class GraphPatcher {
 					(e) => e.source === sourceNode && e.target === targetNode
 				);
 				if (!edgeExists) {
+					// 標記為 plugin 注入的邊，cleanup 時可識別並移除
 					renderer.edges.push({
 						source: sourceNode,
 						target: targetNode,
+						_skillGraphInjected: true,
 					});
 				}
 			}
@@ -99,6 +101,10 @@ export class GraphPatcher {
 				delete node._skillGraphPatched;
 				delete node._originalGetDisplayText;
 			}
+			// 移除所有 plugin 注入的邊，恢復原始 edges 陣列
+			renderer.edges = renderer.edges.filter(
+				(e) => !e._skillGraphInjected
+			);
 		}
 	}
 }

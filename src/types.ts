@@ -32,6 +32,8 @@ export interface GraphRenderer {
 export interface GraphEdge {
 	source: GraphNode;
 	target: GraphNode;
+	/** plugin 注入的邊標記，cleanup 時用來過濾移除 */
+	_skillGraphInjected?: boolean;
 }
 
 /** Graph view（未公開 API） */

@@ -44,6 +44,20 @@ export default class SkillGraphPlugin extends Plugin {
 			})
 		);
 
+		// 監聽檔案重新命名：先清除舊路徑的 skillMap，再重新解析新路徑
+		this.registerEvent(
+			this.app.vault.on("rename", async (file, oldPath) => {
+				this.parser.onFileDeleted(oldPath);
+				if (
+					file instanceof TFile &&
+					file.name === this.settings.skillFileName
+				) {
+					await this.parser.parseSkillFile(file);
+				}
+				this.debouncedPatch();
+			})
+		);
+
 		// 監聽 layout 變更（graph view 開啟/切換時），debounce 避免頻繁觸發
 		this.registerEvent(
 			this.app.workspace.on("layout-change", () => {
