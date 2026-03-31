@@ -133,13 +133,12 @@ export class SkillParser {
 	 * Converts an absolute path to a vault-relative path.
 	 * Uses exact prefix matching only (no fuzzy matching) to avoid false positives.
 	 *
-	 * Example — vault = /Users/Hana/OpenClaw/mojo/skills:
-	 *   /Users/Hana/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py
-	 *   → threads-reply/scripts/fetch.py
+	 * Example — vault = /home/user/workspace/skills:
+	 *   /home/user/workspace/skills/my-skill/scripts/fetch.py
+	 *   → my-skill/scripts/fetch.py
 	 *
-	 * Note: Absolute paths from other machines (e.g. /Users/harb/...) will not
-	 * match and are silently ignored. SKILL.md files should use {baseDir}/-relative
-	 * paths instead.
+	 * Note: Absolute paths from other machines will not match and are silently
+	 * ignored. SKILL.md files should use {baseDir}/-relative paths instead.
 	 */
 	private absoluteToVaultPath(absPath: string, vaultBasePath: string): string | null {
 		const prefix = vaultBasePath.endsWith("/") ? vaultBasePath : vaultBasePath + "/";

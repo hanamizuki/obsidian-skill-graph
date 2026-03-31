@@ -65,7 +65,7 @@ describe("parseReferences — relativePaths", () => {
 	});
 
 	it("ignores ~ paths", () => {
-		const text = "Uses `~/OpenClaw/mojo/scout/threads/threads.db` for data.";
+		const text = "Uses `~/workspace/scout/threads/threads.db` for data.";
 		const { relativePaths, absolutePaths } = parseReferences(text);
 		expect(relativePaths).toHaveLength(0);
 		expect(absolutePaths).toHaveLength(0);
@@ -87,20 +87,20 @@ describe("parseReferences — relativePaths", () => {
 
 describe("parseReferences — absolutePaths", () => {
 	it("collects absolute paths separately", () => {
-		const text = "python3 /Users/harb/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py";
+		const text = "python3 /home/user/workspace/skills/my-skill/scripts/fetch.py";
 		const { relativePaths, absolutePaths } = parseReferences(text);
 		expect(relativePaths).toHaveLength(0);
-		expect(absolutePaths).toContain("/Users/harb/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py");
+		expect(absolutePaths).toContain("/home/user/workspace/skills/my-skill/scripts/fetch.py");
 	});
 
 	it("collects backtick absolute paths", () => {
-		const text = "讀取 `/Users/harb/OpenClaw/mojo/skills/x-reply/references/subagent-prompt.md`";
+		const text = "Read `/home/user/workspace/skills/x-reply/references/subagent-prompt.md`";
 		const { absolutePaths } = parseReferences(text);
-		expect(absolutePaths).toContain("/Users/harb/OpenClaw/mojo/skills/x-reply/references/subagent-prompt.md");
+		expect(absolutePaths).toContain("/home/user/workspace/skills/x-reply/references/subagent-prompt.md");
 	});
 
 	it("does not put absolute paths in relativePaths", () => {
-		const text = "`/Users/harb/OpenClaw/mojo/skills/foo/scripts/bar.py`";
+		const text = "`/home/user/workspace/skills/foo/scripts/bar.py`";
 		const { relativePaths } = parseReferences(text);
 		expect(relativePaths).toHaveLength(0);
 	});

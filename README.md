@@ -78,7 +78,7 @@ Reference path formats inside the OpenClaw ecosystem are inconsistent. The parse
 | Backtick relative path | `` `references/SCHEMA.md` `` | Extract directly |
 | Markdown link | `[FORMS.md](references/forms.md)` | Extract link target |
 | CLI command path | `python3 scripts/fetch.py` | Extract path after command |
-| Absolute path | `/Users/harb/.../scripts/fetch.py` | Strip vault prefix and convert |
+| Absolute path | `/home/user/.../scripts/fetch.py` | Strip vault prefix and convert |
 
 Supported CLI keywords: `python3`, `python`, `bash`, `node`, `sh`
 
@@ -87,7 +87,7 @@ Supported CLI keywords: `python3`, `python`, `bash`, `node`, `sh`
 | Format | Reason |
 |--------|--------|
 | URLs (`https://...`) | External links, not file references |
-| `~`-prefixed paths (`~/OpenClaw/...`) | Home-directory paths; cannot reliably map to vault |
+| `~`-prefixed paths (`~/workspace/...`) | Home-directory paths; cannot reliably map to vault |
 | `.openclaw/skills/` paths | Global skills; reserved for a future virtual-node feature |
 
 ### Three-level Fallback Resolution
@@ -110,9 +110,9 @@ Strategy 3: strip the first path segment
 
 Absolute paths are resolved by matching the vault `basePath` prefix:
 ```
-/Users/harb/OpenClaw/mojo/skills/threads-reply/scripts/fetch.py
+/home/user/workspace/skills/my-skill/scripts/fetch.py
 → strip vault prefix
-→ threads-reply/scripts/fetch.py
+→ my-skill/scripts/fetch.py
 ```
 
 Paths that cannot be resolved by any strategy are silently ignored (the file may be outside the vault).
@@ -157,7 +157,7 @@ This plugin relies on the following undocumented Obsidian internals (confirmed v
 - **Desktop only**: Uses Node.js `fs` and `vault.adapter.basePath`; not compatible with mobile.
 - **Files outside the vault are not shown**: Workspace shared resources (e.g. `references/branding/`, `social/profiles/`) that live outside the vault directory will not appear in the graph.
 - **Edges are undirected**: Obsidian graph links have no arrows, so the direction of a "SKILL.md references scripts" relationship is not visible.
-- **`~` paths are not resolved**: Paths like `~/OpenClaw/mojo/...` are currently ignored.
+- **`~` paths are not resolved**: Paths like `~/workspace/...` are currently ignored.
 
 ## Future Plans (v2)
 
