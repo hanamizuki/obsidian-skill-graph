@@ -40,11 +40,30 @@ export interface GraphNode {
 	_originalDisplayText?: string;
 }
 
+/** Color value used by the PixiJS-based graph renderer */
+export interface RendererColor {
+	a: number;
+	rgb: number;
+}
+
 /** Graph renderer (undocumented API) */
 export interface GraphRenderer {
 	nodes: GraphNode[];
 	/** Array of edges; actual property name is links */
 	links: GraphLink[];
+	/** Theme colors used by the renderer for default node fills */
+	colors?: {
+		fill: RendererColor;
+		fillUnresolved: RendererColor;
+		fillFocused: RendererColor;
+		fillTag: RendererColor;
+		fillAttachment: RendererColor;
+		[key: string]: RendererColor;
+	};
+	/** Called on each render frame; can be wrapped to inject per-frame logic */
+	renderCallback?: (...args: unknown[]) => void;
+	/** Marker set by the plugin to avoid hooking renderCallback twice */
+	_skillGraphRenderHooked?: boolean;
 }
 
 /** Graph link/edge (undocumented API) */
@@ -60,4 +79,15 @@ export interface GraphView {
 	renderer?: GraphRenderer;
 	getDisplayText(): string;
 	getViewType(): string;
+}
+
+// === Obsidian module augmentation for undocumented APIs ===
+
+declare module "obsidian" {
+	interface MetadataCache {
+		unresolvedLinks: Record<string, Record<string, number>>;
+	}
+	interface FileSystemAdapter {
+		basePath: string;
+	}
 }

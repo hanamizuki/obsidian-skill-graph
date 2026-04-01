@@ -1,8 +1,10 @@
-import { App, TFile } from "obsidian";
+import { App, FileSystemAdapter, TFile } from "obsidian";
 import { readFileSync } from "fs";
 import { homedir } from "os";
 import { parseReferences } from "./parse-references";
 import type { SkillInfo } from "./types";
+// Import types.ts to activate module augmentation (FileSystemAdapter.basePath)
+import "./types";
 
 /**
  * Scans all SKILL.md files in the vault and parses skill information.
@@ -71,14 +73,15 @@ export class SkillParser {
 				references.push(resolved);
 			} else {
 				// Skip paths with placeholders (e.g. [market], YYYY-MM)
-				if (!/[\[\]{}]/.test(ref) && !/YYYY/.test(ref)) {
+				if (!/[[\]{}]/.test(ref) && !/YYYY/.test(ref)) {
 					unresolvedRefs.push(ref);
 				}
 			}
 		}
 
 		// Resolve absolute paths: strip vault base path prefix to get vault-relative path
-		const vaultBasePath = (this.app.vault.adapter as any).basePath as string | undefined;
+		const adapter = this.app.vault.adapter;
+		const vaultBasePath = adapter instanceof FileSystemAdapter ? adapter.basePath : undefined;
 		if (vaultBasePath) {
 			for (const absPath of absolutePaths) {
 				const vaultRelative = this.absoluteToVaultPath(absPath, vaultBasePath);

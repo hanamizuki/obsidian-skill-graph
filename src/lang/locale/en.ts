@@ -15,8 +15,9 @@ const en = {
 	"external-reference-color": "External reference color",
 	"external-reference-color-desc": "Hex color for files outside the vault",
 
+
 	// Footer
-	"footer-text": "Agent Skill Graph — visualize your AI agent skill structures.",
+	"footer-text": "Agent Skill Graph — visualize your AI agent skill structures",
 	"footer-github": "GitHub",
 };
 

@@ -35,8 +35,7 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		// Header
-		containerEl.createEl("h2", { text: t("settings-heading") });
+		new Setting(containerEl).setName(t("settings-heading")).setHeading();
 
 		new Setting(containerEl)
 			.setName(t("skill-file-name"))

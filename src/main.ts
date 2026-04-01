@@ -3,6 +3,8 @@ import { DEFAULT_SETTINGS, SkillGraphSettingTab } from "./settings";
 import type { SkillGraphSettings } from "./settings";
 import { SkillParser } from "./skill-parser";
 import { GraphPatcher } from "./graph-patcher";
+// Import types.ts to activate module augmentation (MetadataCache.unresolvedLinks, etc.)
+import "./types";
 
 export default class SkillGraphPlugin extends Plugin {
 	settings: SkillGraphSettings = DEFAULT_SETTINGS;
@@ -116,8 +118,7 @@ export default class SkillGraphPlugin extends Plugin {
 	 */
 	private injectLinks(): void {
 		const resolvedLinks = this.app.metadataCache.resolvedLinks;
-		const unresolvedLinks = (this.app.metadataCache as any).unresolvedLinks as
-			Record<string, Record<string, number>> | undefined;
+		const unresolvedLinks = this.app.metadataCache.unresolvedLinks;
 
 		for (const [skillPath, skillInfo] of this.parser.skillMap) {
 			// Inject in-vault references into resolvedLinks
@@ -129,7 +130,7 @@ export default class SkillGraphPlugin extends Plugin {
 			}
 
 			// Inject out-of-vault references into unresolvedLinks (displayed as virtual nodes)
-			if (unresolvedLinks && skillInfo.unresolvedRefs.length > 0) {
+			if (skillInfo.unresolvedRefs.length > 0) {
 				if (!unresolvedLinks[skillPath]) {
 					unresolvedLinks[skillPath] = {};
 				}
@@ -145,8 +146,7 @@ export default class SkillGraphPlugin extends Plugin {
 	 */
 	private cleanupLinks(): void {
 		const resolvedLinks = this.app.metadataCache.resolvedLinks;
-		const unresolvedLinks = (this.app.metadataCache as any).unresolvedLinks as
-			Record<string, Record<string, number>> | undefined;
+		const unresolvedLinks = this.app.metadataCache.unresolvedLinks;
 
 		for (const [skillPath, skillInfo] of this.parser.skillMap) {
 			if (resolvedLinks[skillPath]) {

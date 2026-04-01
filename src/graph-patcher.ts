@@ -78,9 +78,8 @@ export class GraphPatcher {
 	 * by the renderer's own unresolved color logic on every frame.
 	 */
 	private overrideUnresolvedColor(renderer: GraphRenderer): void {
-		const r = renderer as any;
-		if (r.colors?.fillUnresolved) {
-			r.colors.fillUnresolved = {
+		if (renderer.colors?.fillUnresolved) {
+			renderer.colors.fillUnresolved = {
 				a: 1,
 				rgb: this.hexToInt(this.settings.colorExternalRef),
 			};
@@ -92,19 +91,17 @@ export class GraphPatcher {
 	 * Without this, the renderer resets node.color during animation, causing flicker.
 	 */
 	private hookRenderCallback(renderer: GraphRenderer): void {
-		const r = renderer as any;
-		if (r._skillGraphRenderHooked) return;
+		if (renderer._skillGraphRenderHooked) return;
 
-		const originalCallback = r.renderCallback;
+		const originalCallback = renderer.renderCallback;
 		if (typeof originalCallback !== "function") return;
 
-		const self = this;
-		r.renderCallback = function (...args: unknown[]) {
-			originalCallback.apply(this, args);
+		renderer.renderCallback = (...args: unknown[]) => {
+			originalCallback.call(renderer, ...args);
 			// Re-apply colors after the renderer's own render pass
-			self.applyColors(renderer);
+			this.applyColors(renderer);
 		};
-		r._skillGraphRenderHooked = true;
+		renderer._skillGraphRenderHooked = true;
 	}
 
 	/** Override node labels (once) and apply colors */
