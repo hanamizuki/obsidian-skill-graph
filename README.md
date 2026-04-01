@@ -73,7 +73,7 @@ Enter hex color codes (e.g. `#ff6b6b`). Changes take effect after reopening Grap
 If your skills are spread across multiple directories, you can use symlinks to consolidate them into a single Obsidian vault.
 
 This is common when:
-- **OpenClaw** agents each have their own skill directory (e.g. `~/OpenClaw/mojo/skills/`, `~/OpenClaw/jimi/skills/`)
+- **OpenClaw** agents each have their own skill directory (e.g. `~/OpenClaw/agent-a/skills/`, `~/OpenClaw/agent-b/skills/`)
 - **Claude Code** has both global skills (`~/.claude/skills/`) and project-level skills (`.claude/skills/` inside a repo)
 
 ### Setup
@@ -85,9 +85,9 @@ mkdir ~/skill-vault
 cd ~/skill-vault
 
 # Example: OpenClaw agents
-ln -s ~/OpenClaw/.openclaw/skills  global
-ln -s ~/OpenClaw/mojo/skills       mojo
-ln -s ~/OpenClaw/jimi/skills       jimi
+ln -s ~/OpenClaw/.openclaw/skills   global
+ln -s ~/OpenClaw/agent-a/skills     agent-a
+ln -s ~/OpenClaw/agent-b/skills     agent-b
 
 # Example: Claude Code
 ln -s ~/.claude/skills              claude-global
