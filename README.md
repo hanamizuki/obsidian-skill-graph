@@ -68,6 +68,36 @@ Settings → Community plugins → Agent Skill Graph (gear icon)
 
 Enter hex color codes (e.g. `#ff6b6b`). Changes take effect after reopening Graph View.
 
+## Tips: Multi-Directory Vault with Symlinks
+
+If your skills are spread across multiple directories, you can use symlinks to consolidate them into a single Obsidian vault.
+
+This is common when:
+- **OpenClaw** agents each have their own skill directory (e.g. `~/OpenClaw/mojo/skills/`, `~/OpenClaw/jimi/skills/`)
+- **Claude Code** has both global skills (`~/.claude/skills/`) and project-level skills (`.claude/skills/` inside a repo)
+
+### Setup
+
+Create a dedicated directory and symlink each skill source:
+
+```bash
+mkdir ~/skill-vault
+cd ~/skill-vault
+
+# Example: OpenClaw agents
+ln -s ~/OpenClaw/.openclaw/skills  global
+ln -s ~/OpenClaw/mojo/skills       mojo
+ln -s ~/OpenClaw/jimi/skills       jimi
+
+# Example: Claude Code
+ln -s ~/.claude/skills              claude-global
+ln -s ~/my-project/.claude/skills   my-project
+```
+
+Then open `~/skill-vault` as an Obsidian vault.
+
+> **Important:** Obsidian ignores directories starting with `.` (dotfiles). Use plain names like `global` instead of `.openclaw` for your symlink names.
+
 ## How It Works
 
 ### Node Renaming
