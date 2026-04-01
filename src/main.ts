@@ -10,6 +10,8 @@ export default class SkillGraphPlugin extends Plugin {
 	private patcher!: GraphPatcher;
 	/** debounce timer ID */
 	private patchTimer: number | null = null;
+	/** Periodic patch interval for catching dynamically added nodes (e.g. graph animation mode) */
+	private periodicPatchInterval: number | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -65,6 +67,14 @@ export default class SkillGraphPlugin extends Plugin {
 			this.app.workspace.on("layout-change", () => {
 				this.debouncedPatch();
 			})
+		);
+
+		// Periodic patch: catches nodes added dynamically (e.g. graph animation mode)
+		// Uses registerInterval for automatic cleanup on plugin unload
+		this.periodicPatchInterval = this.registerInterval(
+			window.setInterval(() => {
+				this.patcher.patchAllGraphs();
+			}, 500)
 		);
 
 		// Register settings tab
