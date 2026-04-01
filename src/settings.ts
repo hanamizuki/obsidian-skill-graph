@@ -17,9 +17,9 @@ export interface SkillGraphSettings {
 export const DEFAULT_SETTINGS: SkillGraphSettings = {
 	skillFileName: "SKILL.md",
 	nameField: "name",
-	colorSkill: "#4a9eff",
-	colorLocalRef: "#a0c4e8",
-	colorExternalRef: "#c4a0e8",
+	colorSkill: "#DE7356",
+	colorLocalRef: "#5B8CA4",
+	colorExternalRef: "#DBDBDB",
 };
 
 export class SkillGraphSettingTab extends PluginSettingTab {

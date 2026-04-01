@@ -37,9 +37,9 @@ Settings → Community plugins → Agent Skill Graph (gear icon)
 |---------|---------|-------------|
 | Skill file name | `SKILL.md` | Filename to scan |
 | Name field | `name` | Frontmatter field used as the node label |
-| Skill node color | `#4a9eff` | Color for SKILL.md nodes |
-| Reference node color | `#a0c4e8` | Color for referenced files inside the vault |
-| External reference color | `#c4a0e8` | Color for referenced files outside the vault |
+| Skill node color | `#DE7356` | Color for SKILL.md nodes |
+| Reference node color | `#5B8CA4` | Color for referenced files inside the vault |
+| External reference color | `#DBDBDB` | Color for referenced files outside the vault |
 
 Enter hex color codes (e.g. `#ff6b6b`). Changes take effect after reopening Graph View.
 
