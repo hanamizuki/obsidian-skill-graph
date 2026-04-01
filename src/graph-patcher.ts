@@ -67,7 +67,24 @@ export class GraphPatcher {
 		if (!renderer?.nodes) return;
 
 		this.patchNodes(renderer);
+		this.overrideUnresolvedColor(renderer);
 		this.hookRenderCallback(renderer);
+	}
+
+	/**
+	 * Override renderer.colors.fillUnresolved so unresolved (external) nodes
+	 * use our configured color instead of Obsidian's default gray.
+	 * This is more reliable than setting node.color, which gets overwritten
+	 * by the renderer's own unresolved color logic on every frame.
+	 */
+	private overrideUnresolvedColor(renderer: GraphRenderer): void {
+		const r = renderer as any;
+		if (r.colors?.fillUnresolved) {
+			r.colors.fillUnresolved = {
+				a: 1,
+				rgb: this.hexToInt(this.settings.colorExternalRef),
+			};
+		}
 	}
 
 	/**

@@ -2,6 +2,8 @@
 
 An Obsidian plugin to visualize OpenClaw / Claude Code agent skill structures in graph view.
 
+https://github.com/user-attachments/assets/5ae7f2b5-828a-46f6-97de-f2b910336050
+
 In Graph View:
 - SKILL.md nodes display the frontmatter `name` value (instead of the filename "SKILL")
 - Files referenced inside SKILL.md are automatically parsed and connected with edges
