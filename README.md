@@ -11,16 +11,39 @@ In Graph View:
 
 Read-only — no original files are modified. All changes are in-memory and revert when the plugin is disabled.
 
-## Installation
+## Getting Started
 
-1. Symlink this directory into your vault's plugins folder:
+### 1. Create a vault from your skills directory
+
+Open Obsidian → **Open folder as vault** → select your agent's skills directory.
+
+For example:
+- OpenClaw: `~/OpenClaw/mojo/skills/` or `~/OpenClaw/harbs/skills/`
+- Claude Code: `~/.claude/skills/`
+
+Each skill subdirectory should contain a `SKILL.md` file with YAML frontmatter including a `name` field.
+
+### 2. Install the plugin
+
+Clone or download this repository, then symlink it into your vault's plugins folder:
 
 ```bash
+# Build the plugin first
+cd <path-to-this-repo>
+npm install && npm run build
+
+# Symlink into your vault
 mkdir -p <vault>/.obsidian/plugins
 ln -s <path-to-this-repo> <vault>/.obsidian/plugins/obsidian-skill-graph
 ```
 
-2. In Obsidian: Settings → Community plugins → enable **Agent Skill Graph**
+### 3. Enable the plugin
+
+In Obsidian: Settings → Community plugins → Turn on community plugins → enable **Agent Skill Graph**
+
+### 4. Open Graph View
+
+Press `Cmd+P` (or `Ctrl+P`) → search "Open graph view" → Enter. You should see skill nodes renamed and colored.
 
 ### Development
 
