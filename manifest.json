@@ -1,9 +1,9 @@
 {
-	"id": "obsidian-skill-graph",
+	"id": "agent-skill-graph",
 	"name": "Agent Skill Graph",
 	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "Visualize OpenClaw/Claude Code skill structures in graph view.",
+	"description": "Visualize AI agent skill structures in graph view. Renames SKILL.md nodes from frontmatter, draws reference edges, and colors nodes by type.",
 	"author": "Hana",
 	"isDesktopOnly": true
 }
