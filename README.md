@@ -207,6 +207,10 @@ This plugin relies on the following undocumented Obsidian internals (confirmed v
 | `metadataCache.resolvedLinks` | Inject virtual edges | Relatively stable; used by multiple plugins |
 | `vault.adapter.basePath` | Get vault absolute path | Desktop only; not available on mobile |
 
+## Privacy & Data Access
+
+This plugin accesses files **outside the vault** in one specific case: when a SKILL.md references an external file (e.g. `~/.openclaw/skills/foo/SKILL.md`), the plugin reads that file's YAML frontmatter to extract the `name` field for display in the graph. Only the `name` field is used; no file content is modified. No data is sent over the network.
+
 ## Known Limitations
 
 - **Desktop only**: Uses Node.js `fs` and `vault.adapter.basePath`; not compatible with mobile.
