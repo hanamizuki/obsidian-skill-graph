@@ -1,7 +1,7 @@
 // English locale — also serves as the type definition for all translations
 const en = {
 	// Settings tab header
-	"settings-heading": "Agent Skill Graph",
+	"settings-heading": "Agent skill graph",
 
 	// Setting names
 	"skill-file-name": "Skill file name",
@@ -17,7 +17,7 @@ const en = {
 
 
 	// Footer
-	"footer-text": "Agent Skill Graph — visualize your AI agent skill structures",
+	"footer-text": "Agent skill graph — visualize your AI agent skill structures",
 	"footer-github": "GitHub",
 };
 

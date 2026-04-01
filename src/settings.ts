@@ -42,7 +42,7 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			.setDesc(t("skill-file-name-desc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("SKILL.md")
+					.setPlaceholder("Skill.md")
 					.setValue(this.plugin.settings.skillFileName)
 					.onChange(async (value) => {
 						this.plugin.settings.skillFileName = value;
@@ -55,7 +55,7 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			.setDesc(t("name-field-desc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("name")
+					.setPlaceholder("Name")
 					.setValue(this.plugin.settings.nameField)
 					.onChange(async (value) => {
 						this.plugin.settings.nameField = value;
@@ -68,7 +68,7 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			.setDesc(t("skill-node-color-desc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("#DE7356")
+					.setPlaceholder("#de7356")
 					.setValue(this.plugin.settings.colorSkill)
 					.onChange(async (value) => {
 						this.plugin.settings.colorSkill = value;
@@ -81,7 +81,7 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			.setDesc(t("reference-node-color-desc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("#5B8CA4")
+					.setPlaceholder("#5b8ca4")
 					.setValue(this.plugin.settings.colorLocalRef)
 					.onChange(async (value) => {
 						this.plugin.settings.colorLocalRef = value;
@@ -94,7 +94,7 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			.setDesc(t("external-reference-color-desc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("#DBDBDB")
+					.setPlaceholder("#dbdbdb")
 					.setValue(this.plugin.settings.colorExternalRef)
 					.onChange(async (value) => {
 						this.plugin.settings.colorExternalRef = value;
