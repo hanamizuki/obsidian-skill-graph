@@ -66,11 +66,31 @@ export class GraphPatcher {
 		const renderer = view?.renderer;
 		if (!renderer?.nodes) return;
 
-		// Node color format: { a: 1, rgb: 0xRRGGBB }
 		this.patchNodes(renderer);
+		this.hookRenderCallback(renderer);
 	}
 
-	/** Override node labels and apply colors */
+	/**
+	 * Hook into the renderer's render callback so colors are applied on every frame.
+	 * Without this, the renderer resets node.color during animation, causing flicker.
+	 */
+	private hookRenderCallback(renderer: GraphRenderer): void {
+		const r = renderer as any;
+		if (r._skillGraphRenderHooked) return;
+
+		const originalCallback = r.renderCallback;
+		if (typeof originalCallback !== "function") return;
+
+		const self = this;
+		r.renderCallback = function (...args: unknown[]) {
+			originalCallback.apply(this, args);
+			// Re-apply colors after the renderer's own render pass
+			self.applyColors(renderer);
+		};
+		r._skillGraphRenderHooked = true;
+	}
+
+	/** Override node labels (once) and apply colors */
 	private patchNodes(renderer: GraphRenderer): void {
 		for (const node of renderer.nodes) {
 			// Rename: only apply once per node
@@ -94,8 +114,13 @@ export class GraphPatcher {
 					node._skillGraphPatched = true;
 				}
 			}
+		}
+		this.applyColors(renderer);
+	}
 
-			// Color: re-apply every patch pass (renderer may reset colors)
+	/** Apply colors to all nodes — called on every render frame via hookRenderCallback */
+	private applyColors(renderer: GraphRenderer): void {
+		for (const node of renderer.nodes) {
 			const nodeType = this.getNodeType(node);
 			if (nodeType) {
 				node.color = { a: 1, rgb: this.hexToInt(this.getColorForType(nodeType)) };

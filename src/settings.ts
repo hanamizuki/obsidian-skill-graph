@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type SkillGraphPlugin from "./main";
+import { t } from "./lang/helpers";
 
 export interface SkillGraphSettings {
 	/** Filename to scan for skills, default "SKILL.md" */
@@ -34,9 +35,12 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		// Header
+		containerEl.createEl("h2", { text: t("settings-heading") });
+
 		new Setting(containerEl)
-			.setName("Skill file name")
-			.setDesc("The filename to scan for skills (default: SKILL.md)")
+			.setName(t("skill-file-name"))
+			.setDesc(t("skill-file-name-desc"))
 			.addText((text) =>
 				text
 					.setPlaceholder("SKILL.md")
@@ -48,8 +52,8 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Name field")
-			.setDesc("YAML frontmatter field to use as display name")
+			.setName(t("name-field"))
+			.setDesc(t("name-field-desc"))
 			.addText((text) =>
 				text
 					.setPlaceholder("name")
@@ -61,11 +65,11 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Skill node color")
-			.setDesc("Hex color for SKILL.md nodes (e.g. #4a9eff)")
+			.setName(t("skill-node-color"))
+			.setDesc(t("skill-node-color-desc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("#4a9eff")
+					.setPlaceholder("#DE7356")
 					.setValue(this.plugin.settings.colorSkill)
 					.onChange(async (value) => {
 						this.plugin.settings.colorSkill = value;
@@ -74,11 +78,11 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Reference node color")
-			.setDesc("Hex color for referenced files within vault (scripts/, references/)")
+			.setName(t("reference-node-color"))
+			.setDesc(t("reference-node-color-desc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("#a0c4e8")
+					.setPlaceholder("#5B8CA4")
 					.setValue(this.plugin.settings.colorLocalRef)
 					.onChange(async (value) => {
 						this.plugin.settings.colorLocalRef = value;
@@ -87,16 +91,29 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("External reference color")
-			.setDesc("Hex color for files outside the vault (workspace shared resources)")
+			.setName(t("external-reference-color"))
+			.setDesc(t("external-reference-color-desc"))
 			.addText((text) =>
 				text
-					.setPlaceholder("#c4a0e8")
+					.setPlaceholder("#DBDBDB")
 					.setValue(this.plugin.settings.colorExternalRef)
 					.onChange(async (value) => {
 						this.plugin.settings.colorExternalRef = value;
 						await this.plugin.saveSettings();
 					})
 			);
+
+		// Footer
+		containerEl.createEl("hr");
+		const footerEl = containerEl.createEl("div", {
+			cls: "setting-item-description",
+			attr: { style: "text-align: center; margin-top: 1em;" },
+		});
+		footerEl.createEl("p", { text: t("footer-text") });
+		const linkEl = footerEl.createEl("a", {
+			text: t("footer-github"),
+			href: "https://github.com/hanamizuki/obsidian-skill-graph",
+		});
+		linkEl.setAttr("target", "_blank");
 	}
 }
