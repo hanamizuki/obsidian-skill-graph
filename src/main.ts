@@ -22,7 +22,8 @@ export default class SkillGraphPlugin extends Plugin {
 		this.parser = new SkillParser(
 			this.app,
 			this.settings.skillFileName,
-			this.settings.nameField
+			this.settings.nameField,
+			this.settings.skillsFolder
 		);
 		this.patcher = new GraphPatcher(this.app, this.parser.skillMap, this.settings);
 
@@ -104,7 +105,8 @@ export default class SkillGraphPlugin extends Plugin {
 		// Re-scan when settings change
 		await this.parser.updateSettings(
 			this.settings.skillFileName,
-			this.settings.nameField
+			this.settings.nameField,
+			this.settings.skillsFolder
 		);
 		this.patcher.updateSettings(this.settings);
 		this.patcher.patchAllGraphs();

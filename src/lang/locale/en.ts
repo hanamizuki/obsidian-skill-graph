@@ -6,6 +6,8 @@ const en = {
 	// Setting names
 	"skill-file-name": "Skill file name",
 	"skill-file-name-desc": "The filename to scan for skills (default: SKILL.md)",
+	"skills-folder": "Skills folder",
+	"skills-folder-desc": "Folder whose direct .md children are treated as skill nodes (empty to disable)",
 	"name-field": "Name field",
 	"name-field-desc": "YAML frontmatter field to use as display name",
 	"skill-node-color": "Skill node color",

@@ -61,6 +61,7 @@ Settings → Community plugins → Agent Skill Graph (gear icon)
 | Setting | Default | Description |
 |---------|---------|-------------|
 | Skill file name | `SKILL.md` | Filename to scan |
+| Skills folder | `skills` | Folder whose direct `.md` children are also treated as skill nodes (empty to disable the folder rule) |
 | Name field | `name` | Frontmatter field used as the node label |
 | Skill node color | `#DE7356` | Color for SKILL.md nodes |
 | Agent node color | `#7BAE6F` | Color for agent nodes (`type: agent` in frontmatter) |
@@ -100,6 +101,15 @@ Then open `~/skill-vault` as an Obsidian vault.
 > **Important:** Obsidian ignores directories starting with `.` (dotfiles). Use plain names like `global` instead of `.openclaw` for your symlink names.
 
 ## How It Works
+
+### Skill Node Detection
+
+A node is recognized as a *skill* node by **either** of two additive rules:
+
+1. **Exact filename match** — the file is named exactly the configured *Skill file name* (default `SKILL.md`). This is the classic per-skill layout where each skill directory contains its own `SKILL.md`.
+2. **Skills folder** — the file is a `.md` file located *directly* inside the configured *Skills folder* (default `skills`). This supports flat vaults such as the ones produced by `skill-manager-sync`, where every skill is a `skills/<atomic-id>.md` symlink and no file is literally named `SKILL.md`.
+
+The two rules are OR'd, so classic vaults keep working unchanged. Setting *Skills folder* to an empty string disables rule 2 (pure legacy exact-filename behavior). Detection is path/name based only (vault-relative parent path); no symlinks are resolved and no files are read from disk for this check.
 
 ### Node Renaming
 

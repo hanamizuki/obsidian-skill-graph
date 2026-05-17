@@ -19,13 +19,22 @@ function makeFakeApp(frontmatterRef: { value: Record<string, unknown> | null }) 
 }
 
 /** Minimal fake TFile with the fields parseSkillFile reads. */
-function makeFakeFile() {
+function makeFakeFile(
+	overrides: Partial<{
+		path: string;
+		name: string;
+		extension: string;
+		parent: { path: string; name: string };
+		basename: string;
+	}> = {}
+) {
 	return {
 		path: "agents/foo.md",
 		name: "foo.md",
 		extension: "md",
 		parent: { path: "agents", name: "agents" },
 		basename: "foo",
+		...overrides,
 	};
 }
 
@@ -36,7 +45,7 @@ describe("SkillParser — agent stale-node removal", () => {
 		};
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const app = makeFakeApp(fm) as any;
-		const parser = new SkillParser(app, "SKILL.md", "name");
+		const parser = new SkillParser(app, "SKILL.md", "name", "skills");
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const file = makeFakeFile() as any;
 
@@ -52,5 +61,117 @@ describe("SkillParser — agent stale-node removal", () => {
 		fm.value = { name: "Foo Agent" };
 		await parser.parseSkillFile(file);
 		expect(parser.skillMap.has("agents/foo.md")).toBe(false);
+	});
+});
+
+describe("SkillParser — skills folder detection", () => {
+	it("treats a direct .md child of skillsFolder as a skill node", async () => {
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { name: "Foo" },
+		};
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const app = makeFakeApp(fm) as any;
+		const parser = new SkillParser(app, "SKILL.md", "name", "skills");
+		const file = makeFakeFile({
+			path: "skills/foo-abc123.md",
+			name: "foo-abc123.md",
+			extension: "md",
+			parent: { path: "skills", name: "skills" },
+			basename: "foo-abc123",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		expect(parser.skillMap.has("skills/foo-abc123.md")).toBe(true);
+		expect(parser.skillMap.get("skills/foo-abc123.md")?.kind).toBe("skill");
+	});
+
+	it("does NOT treat the folder child as a skill when skillsFolder is empty", async () => {
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { name: "Foo" },
+		};
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const app = makeFakeApp(fm) as any;
+		// Empty skillsFolder disables the folder rule; name !== "SKILL.md".
+		const parser = new SkillParser(app, "SKILL.md", "name", "");
+		const file = makeFakeFile({
+			path: "skills/foo-abc123.md",
+			name: "foo-abc123.md",
+			extension: "md",
+			parent: { path: "skills", name: "skills" },
+			basename: "foo-abc123",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		expect(parser.skillMap.has("skills/foo-abc123.md")).toBe(false);
+	});
+
+	it("normalizes skillsFolder (trims whitespace, strips slashes) before matching", async () => {
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { name: "Foo" },
+		};
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const app = makeFakeApp(fm) as any;
+		// Raw setting "/skills/" with surrounding space should still match a
+		// file whose parent path is the normalized "skills".
+		const parser = new SkillParser(app, "SKILL.md", "name", "  /skills/ ");
+		const file = makeFakeFile({
+			path: "skills/foo-abc123.md",
+			name: "foo-abc123.md",
+			extension: "md",
+			parent: { path: "skills", name: "skills" },
+			basename: "foo-abc123",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		expect(parser.skillMap.has("skills/foo-abc123.md")).toBe(true);
+		expect(parser.skillMap.get("skills/foo-abc123.md")?.kind).toBe("skill");
+	});
+
+	it("treats a whitespace-only skillsFolder as disabled (collapses to empty)", async () => {
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { name: "Foo" },
+		};
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const app = makeFakeApp(fm) as any;
+		// "   " normalizes to "" → folder rule disabled; name !== "SKILL.md".
+		const parser = new SkillParser(app, "SKILL.md", "name", "   ");
+		const file = makeFakeFile({
+			path: "skills/foo-abc123.md",
+			name: "foo-abc123.md",
+			extension: "md",
+			parent: { path: "skills", name: "skills" },
+			basename: "foo-abc123",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		expect(parser.skillMap.has("skills/foo-abc123.md")).toBe(false);
+	});
+
+	it("still detects classic per-skill SKILL.md regardless of skillsFolder", async () => {
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { name: "Content Planner" },
+		};
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const app = makeFakeApp(fm) as any;
+		// skillsFolder set, but the classic name match still wins.
+		const parser = new SkillParser(app, "SKILL.md", "name", "skills");
+		const file = makeFakeFile({
+			path: "content-planner/SKILL.md",
+			name: "SKILL.md",
+			extension: "md",
+			parent: { path: "content-planner", name: "content-planner" },
+			basename: "SKILL",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		expect(parser.skillMap.has("content-planner/SKILL.md")).toBe(true);
+		expect(parser.skillMap.get("content-planner/SKILL.md")?.kind).toBe(
+			"skill"
+		);
 	});
 });

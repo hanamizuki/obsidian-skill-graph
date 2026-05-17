@@ -7,6 +7,8 @@ const zhTW: Partial<Lang> = {
 	// Setting names
 	"skill-file-name": "技能檔名",
 	"skill-file-name-desc": "要掃描的檔名（預設：SKILL.md）",
+	"skills-folder": "Skills 資料夾",
+	"skills-folder-desc": "直接位於此資料夾下的 .md 視為 skill 節點（留空停用）",
 	"name-field": "名稱欄位",
 	"name-field-desc": "YAML frontmatter 中用來當顯示名稱的欄位",
 	"skill-node-color": "技能節點顏色",
