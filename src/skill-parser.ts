@@ -32,7 +32,7 @@ export class SkillParser {
 		this.app = app;
 		this.skillFileName = skillFileName;
 		this.nameField = nameField;
-		this.skillsFolder = skillsFolder;
+		this.skillsFolder = this.normalizeSkillsFolder(skillsFolder);
 	}
 
 	/** Update settings and re-scan */
@@ -43,8 +43,20 @@ export class SkillParser {
 	): Promise<void> {
 		this.skillFileName = skillFileName;
 		this.nameField = nameField;
-		this.skillsFolder = skillsFolder;
+		this.skillsFolder = this.normalizeSkillsFolder(skillsFolder);
 		await this.fullScan();
+	}
+
+	/**
+	 * Normalize the raw skillsFolder setting so it can be compared by strict
+	 * equality against Obsidian's vault-relative `file.parent?.path`, which
+	 * never has surrounding whitespace nor leading/trailing slashes. Trims
+	 * whitespace then strips leading/trailing `/`. A whitespace-only or
+	 * slash-only input therefore collapses to "" — the documented opt-out
+	 * (folder rule disabled) — instead of a dead value that matches nothing.
+	 */
+	private normalizeSkillsFolder(input: string): string {
+		return input.trim().replace(/^\/+|\/+$/g, "");
 	}
 
 	/**

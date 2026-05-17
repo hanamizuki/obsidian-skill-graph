@@ -107,6 +107,50 @@ describe("SkillParser — skills folder detection", () => {
 		expect(parser.skillMap.has("skills/foo-abc123.md")).toBe(false);
 	});
 
+	it("normalizes skillsFolder (trims whitespace, strips slashes) before matching", async () => {
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { name: "Foo" },
+		};
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const app = makeFakeApp(fm) as any;
+		// Raw setting "/skills/" with surrounding space should still match a
+		// file whose parent path is the normalized "skills".
+		const parser = new SkillParser(app, "SKILL.md", "name", "  /skills/ ");
+		const file = makeFakeFile({
+			path: "skills/foo-abc123.md",
+			name: "foo-abc123.md",
+			extension: "md",
+			parent: { path: "skills", name: "skills" },
+			basename: "foo-abc123",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		expect(parser.skillMap.has("skills/foo-abc123.md")).toBe(true);
+		expect(parser.skillMap.get("skills/foo-abc123.md")?.kind).toBe("skill");
+	});
+
+	it("treats a whitespace-only skillsFolder as disabled (collapses to empty)", async () => {
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { name: "Foo" },
+		};
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const app = makeFakeApp(fm) as any;
+		// "   " normalizes to "" → folder rule disabled; name !== "SKILL.md".
+		const parser = new SkillParser(app, "SKILL.md", "name", "   ");
+		const file = makeFakeFile({
+			path: "skills/foo-abc123.md",
+			name: "foo-abc123.md",
+			extension: "md",
+			parent: { path: "skills", name: "skills" },
+			basename: "foo-abc123",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		expect(parser.skillMap.has("skills/foo-abc123.md")).toBe(false);
+	});
+
 	it("still detects classic per-skill SKILL.md regardless of skillsFolder", async () => {
 		const fm: { value: Record<string, unknown> | null } = {
 			value: { name: "Content Planner" },
