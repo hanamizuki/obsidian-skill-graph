@@ -135,10 +135,15 @@ export class SkillParser {
 
 		const kind: "skill" | "agent" = isAgent ? "agent" : "skill";
 
-		// Read display name from frontmatter (same resolution for both kinds)
+		// Classic SKILL.md: identity lives in the parent folder
+		// (content-planner/SKILL.md → "content-planner"). Flat folder-rule
+		// files: the filename itself is the unique identity
+		// (skills/foo-abc123.md); the shared parent ("skills") would collapse
+		// every node to one label.
+		const isExactNameMatch = file.name === this.skillFileName;
 		const displayName =
 			cache?.frontmatter?.[this.nameField] ??
-			file.parent?.name ??
+			(isExactNameMatch ? file.parent?.name : undefined) ??
 			file.basename;
 
 		const references: string[] = [];
