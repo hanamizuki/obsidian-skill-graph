@@ -65,8 +65,14 @@ export class SkillParser {
 
 	/** Parse a single SKILL.md or agent file */
 	async parseSkillFile(file: TFile): Promise<void> {
+		// Fetch the file cache once and reuse it for both the agent check
+		// and display-name resolution (avoids a redundant metadataCache
+		// lookup in the hot path — parseSkillFile runs on every metadata
+		// change). Agent detection still goes through metadataCache only.
+		const cache = this.app.metadataCache.getFileCache(file);
 		const isSkill = file.name === this.skillFileName;
-		const isAgent = file.extension === "md" && this.isAgentFile(file);
+		const isAgent =
+			file.extension === "md" && cache?.frontmatter?.type === "agent";
 
 		// Neither a skill nor an agent file. If we previously tracked this
 		// path (e.g. the user removed `type: agent` from a file), remove the
@@ -81,7 +87,6 @@ export class SkillParser {
 		const kind: "skill" | "agent" = isAgent ? "agent" : "skill";
 
 		// Read display name from frontmatter (same resolution for both kinds)
-		const cache = this.app.metadataCache.getFileCache(file);
 		const displayName =
 			cache?.frontmatter?.[this.nameField] ??
 			file.parent?.name ??
