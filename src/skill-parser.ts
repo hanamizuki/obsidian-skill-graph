@@ -48,14 +48,16 @@ export class SkillParser {
 	/** Full scan of all SKILL.md and agent files in the vault */
 	async fullScan(): Promise<void> {
 		this.skillMap.clear();
-		const files = this.app.vault.getMarkdownFiles();
+		// Scan all files (not just Markdown): skillFileName is user-
+		// configurable and may be a non-.md manifest, so matching it across
+		// every vault file preserves the original behavior. Agent detection
+		// is gated on .md to avoid metadataCache lookups on binary files.
+		const files = this.app.vault.getFiles();
 		const promises: Promise<void>[] = [];
 		for (const file of files) {
-			// SKILL.md is itself a markdown file, so getMarkdownFiles()
-			// covers both skill files and agent files.
 			if (
 				file.name === this.skillFileName ||
-				this.isAgentFile(file)
+				(file.extension === "md" && this.isAgentFile(file))
 			) {
 				promises.push(this.parseSkillFile(file));
 			}
