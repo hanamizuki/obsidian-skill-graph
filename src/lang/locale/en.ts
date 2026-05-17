@@ -10,6 +10,8 @@ const en = {
 	"name-field-desc": "YAML frontmatter field to use as display name",
 	"skill-node-color": "Skill node color",
 	"skill-node-color-desc": "Hex color for SKILL.md nodes",
+	"agent-node-color": "Agent node color",
+	"agent-node-color-desc": "Hex color for agent nodes (type: agent in frontmatter)",
 	"reference-node-color": "Reference node color",
 	"reference-node-color-desc": "Hex color for referenced files within vault",
 	"external-reference-color": "External reference color",

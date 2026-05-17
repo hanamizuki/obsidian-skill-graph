@@ -54,10 +54,9 @@ export default class SkillGraphPlugin extends Plugin {
 		this.registerEvent(
 			this.app.vault.on("rename", async (file, oldPath) => {
 				this.parser.onFileDeleted(oldPath);
-				if (
-					file instanceof TFile &&
-					file.name === this.settings.skillFileName
-				) {
+				// parseSkillFile self-filters and self-removes stale entries,
+				// so call it unconditionally for any renamed TFile.
+				if (file instanceof TFile) {
 					await this.parser.parseSkillFile(file);
 				}
 				this.debouncedPatch();

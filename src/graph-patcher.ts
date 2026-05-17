@@ -143,18 +143,25 @@ export class GraphPatcher {
 	}
 
 	/** Determine the type of a graph node */
-	private getNodeType(node: GraphNode): "skill" | "local-ref" | "external-ref" | null {
-		if (this.skillMap.has(node.id)) return "skill";
+	private getNodeType(
+		node: GraphNode
+	): "skill" | "agent" | "local-ref" | "external-ref" | null {
+		const info = this.skillMap.get(node.id);
+		if (info) return info.kind;
 		if (this.localRefPaths.has(node.id)) return "local-ref";
 		if (this.externalRefPaths.has(node.id)) return "external-ref";
 		return null;
 	}
 
 	/** Return the hex color string for a given node type */
-	private getColorForType(type: "skill" | "local-ref" | "external-ref"): string {
+	private getColorForType(
+		type: "skill" | "agent" | "local-ref" | "external-ref"
+	): string {
 		switch (type) {
 			case "skill":
 				return this.settings.colorSkill;
+			case "agent":
+				return this.settings.colorAgent;
 			case "local-ref":
 				return this.settings.colorLocalRef;
 			case "external-ref":

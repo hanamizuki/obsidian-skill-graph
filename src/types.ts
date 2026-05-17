@@ -6,6 +6,8 @@ export interface SkillInfo {
 	filePath: string;
 	/** Value of the name field in frontmatter */
 	displayName: string;
+	/** Node kind: "skill" for SKILL.md files, "agent" for type: agent frontmatter files */
+	kind: "skill" | "agent";
 	/** Paths of referenced files confirmed to exist inside the vault */
 	references: string[];
 	/** Reference paths that could not be resolved to a file inside the vault */

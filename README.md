@@ -63,6 +63,7 @@ Settings → Community plugins → Agent Skill Graph (gear icon)
 | Skill file name | `SKILL.md` | Filename to scan |
 | Name field | `name` | Frontmatter field used as the node label |
 | Skill node color | `#DE7356` | Color for SKILL.md nodes |
+| Agent node color | `#7BAE6F` | Color for agent nodes (`type: agent` in frontmatter) |
 | Reference node color | `#5B8CA4` | Color for referenced files inside the vault |
 | External reference color | `#DBDBDB` | Color for referenced files outside the vault |
 
@@ -112,8 +113,15 @@ The plugin injects SKILL.md → referenced-file entries into `metadataCache.reso
 
 Node `color` is in `{ a: 1, rgb: 0xRRGGBB }` format (PixiJS color). On every patch pass the plugin sets each node's color based on its type:
 - Skill root node (present in skillMap) → `colorSkill`
+- Agent node (`type: agent` in frontmatter) → `colorAgent`
 - Referenced file inside vault → `colorLocalRef`
 - Referenced file outside vault → `colorExternalRef`
+
+### Agent Nodes
+
+A markdown file whose YAML frontmatter has `type: agent` is detected as an *agent* node and colored with `colorAgent`. This is intended for an "agent → visible skills" vault where each agent has one `.md` file containing markdown links to the skills it can see.
+
+Agent → skill edges are produced by Obsidian's **native markdown-link resolution** — the plugin does not inject those edges (unlike SKILL.md reference edges). Detection uses `metadataCache` frontmatter only; if `type: agent` is later removed from a file, the plugin drops the now-stale node automatically.
 
 ### Performance
 
