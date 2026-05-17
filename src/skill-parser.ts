@@ -139,12 +139,14 @@ export class SkillParser {
 		// (content-planner/SKILL.md → "content-planner"). Flat folder-rule
 		// files: the filename itself is the unique identity
 		// (skills/foo-abc123.md); the shared parent ("skills") would collapse
-		// every node to one label.
+		// every node to one label. The `&& file.parent?.name` guard also
+		// covers a SKILL.md at the vault root, where `parent.name` is "" — an
+		// empty string is not nullish, so `??` alone would not fall through to
+		// the basename. `||` treats "" as falsy and correctly falls back.
 		const isExactNameMatch = file.name === this.skillFileName;
 		const displayName =
 			cache?.frontmatter?.[this.nameField] ??
-			(isExactNameMatch ? file.parent?.name : undefined) ??
-			file.basename;
+			((isExactNameMatch && file.parent?.name) || file.basename);
 
 		const references: string[] = [];
 		const unresolvedRefs: string[] = [];

@@ -204,6 +204,31 @@ describe("SkillParser — skills folder detection", () => {
 		).toBe("content-planner");
 	});
 
+	it("falls back to basename for a vault-root SKILL.md missing nameField (empty parent name)", async () => {
+		// A SKILL.md at the vault root has an empty-string parent.name. An
+		// empty string is not nullish, so a plain `??` chain would resolve
+		// displayName to "" — the `|| file.basename` form treats "" as falsy
+		// and correctly falls back.
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { description: "no name field here" },
+		};
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		const app = makeFakeApp(fm) as any;
+		const parser = new SkillParser(app, "SKILL.md", "name", "skills");
+		const file = makeFakeFile({
+			path: "SKILL.md",
+			name: "SKILL.md",
+			extension: "md",
+			parent: { path: "", name: "" },
+			basename: "SKILL",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		expect(parser.skillMap.has("SKILL.md")).toBe(true);
+		expect(parser.skillMap.get("SKILL.md")?.displayName).toBe("SKILL");
+	});
+
 	it("still detects classic per-skill SKILL.md regardless of skillsFolder", async () => {
 		const fm: { value: Record<string, unknown> | null } = {
 			value: { name: "Content Planner" },
