@@ -138,11 +138,13 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 					})
 			);
 
-		// Footer
+		// Footer. Use Obsidian's createDiv helper (per eslint-plugin-obsidianmd
+		// prefer-create-el) and move the centering/spacing into a CSS class in
+		// the auto-loaded top-level styles.css instead of an inline style
+		// attribute (Obsidian rejects inline styles).
 		containerEl.createEl("hr");
-		const footerEl = containerEl.createEl("div", {
-			cls: "setting-item-description",
-			attr: { style: "text-align: center; margin-top: 1em;" },
+		const footerEl = containerEl.createDiv({
+			cls: "skill-graph-settings-footer setting-item-description",
 		});
 		footerEl.createEl("p", { text: t("footer-text") });
 		const linkEl = footerEl.createEl("a", {

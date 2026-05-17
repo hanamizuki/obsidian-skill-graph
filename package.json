@@ -7,16 +7,23 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"lint": "eslint src",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
 	"keywords": [],
 	"license": "MIT",
 	"devDependencies": {
+		"@eslint/js": "^9.39.4",
+		"@eslint/json": "^0.14.0",
 		"@types/node": "^22.0.0",
+		"@typescript-eslint/parser": "^8.59.3",
 		"esbuild": "0.25.5",
+		"eslint": "^9.39.4",
+		"eslint-plugin-obsidianmd": "^0.3.0",
 		"tslib": "2.4.0",
 		"typescript": "^5.8.3",
+		"typescript-eslint": "^8.59.3",
 		"vitest": "^3.2.1"
 	},
 	"dependencies": {

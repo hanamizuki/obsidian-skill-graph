@@ -1,0 +1,13 @@
+/*
+ * Agent Skill Graph plugin styles.
+ *
+ * Obsidian auto-loads a top-level styles.css next to manifest.json, so this
+ * file needs no esbuild/manifest wiring. The footer rule replaces the inline
+ * style attribute that was previously set on the settings footer element
+ * (inline styles are rejected by the Obsidian community review).
+ */
+
+.skill-graph-settings-footer {
+	text-align: center;
+	margin-top: 1em;
+}

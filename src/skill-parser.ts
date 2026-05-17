@@ -144,9 +144,15 @@ export class SkillParser {
 		// empty string is not nullish, so `??` alone would not fall through to
 		// the basename. `||` treats "" as falsy and correctly falls back.
 		const isExactNameMatch = file.name === this.skillFileName;
-		const displayName =
-			cache?.frontmatter?.[this.nameField] ??
-			((isExactNameMatch && file.parent?.name) || file.basename);
+		// Obsidian's FrontMatterCache is typed `{ [key: string]: any }`, so a
+		// raw field access is `any`. Narrow it to a string here (only adopt
+		// the frontmatter value when it is actually a string) so displayName
+		// stays strictly typed and no `any` leaks into the SkillInfo object.
+		const frontmatterName: unknown = cache?.frontmatter?.[this.nameField];
+		const displayName: string =
+			typeof frontmatterName === "string"
+				? frontmatterName
+				: (isExactNameMatch && file.parent?.name) || file.basename;
 
 		const references: string[] = [];
 		const unresolvedRefs: string[] = [];
