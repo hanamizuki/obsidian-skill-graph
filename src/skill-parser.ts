@@ -33,77 +33,114 @@ export class SkillParser {
 		await this.fullScan();
 	}
 
-	/** Full scan of all SKILL.md files in the vault */
+	/**
+	 * Whether a file is an agent file (frontmatter `type: agent`).
+	 * Detection goes through metadataCache only — no text/regex frontmatter
+	 * parsing — to avoid two divergent detection paths.
+	 */
+	private isAgentFile(file: TFile): boolean {
+		return (
+			this.app.metadataCache.getFileCache(file)?.frontmatter?.type ===
+			"agent"
+		);
+	}
+
+	/** Full scan of all SKILL.md and agent files in the vault */
 	async fullScan(): Promise<void> {
 		this.skillMap.clear();
-		const files = this.app.vault.getFiles();
+		const files = this.app.vault.getMarkdownFiles();
 		const promises: Promise<void>[] = [];
 		for (const file of files) {
-			if (file.name === this.skillFileName) {
+			// SKILL.md is itself a markdown file, so getMarkdownFiles()
+			// covers both skill files and agent files.
+			if (
+				file.name === this.skillFileName ||
+				this.isAgentFile(file)
+			) {
 				promises.push(this.parseSkillFile(file));
 			}
 		}
 		await Promise.all(promises);
 	}
 
-	/** Parse a single SKILL.md file */
+	/** Parse a single SKILL.md or agent file */
 	async parseSkillFile(file: TFile): Promise<void> {
-		if (file.name !== this.skillFileName) return;
+		const isSkill = file.name === this.skillFileName;
+		const isAgent = file.extension === "md" && this.isAgentFile(file);
 
-		// Read display name from frontmatter
+		// Neither a skill nor an agent file. If we previously tracked this
+		// path (e.g. the user removed `type: agent` from a file), remove the
+		// now-stale entry so the graph stops coloring it.
+		if (!isSkill && !isAgent) {
+			if (this.skillMap.has(file.path)) {
+				this.skillMap.delete(file.path);
+			}
+			return;
+		}
+
+		const kind: "skill" | "agent" = isAgent ? "agent" : "skill";
+
+		// Read display name from frontmatter (same resolution for both kinds)
 		const cache = this.app.metadataCache.getFileCache(file);
 		const displayName =
 			cache?.frontmatter?.[this.nameField] ??
 			file.parent?.name ??
 			file.basename;
 
-		// Read file content
-		const text = await this.app.vault.cachedRead(file);
-
-		// Parse references from content
-		const { relativePaths, absolutePaths } = parseReferences(text);
-		const dir = file.parent?.path ?? "";
 		const references: string[] = [];
 		const unresolvedRefs: string[] = [];
-
-		// Resolve relative paths
-		for (const ref of relativePaths) {
-			const resolved = this.resolveRefPath(ref, dir);
-			if (resolved) {
-				references.push(resolved);
-			} else {
-				// Skip paths with placeholders (e.g. [market], YYYY-MM)
-				if (!/[[\]{}]/.test(ref) && !/YYYY/.test(ref)) {
-					unresolvedRefs.push(ref);
-				}
-			}
-		}
-
-		// Resolve absolute paths: strip vault base path prefix to get vault-relative path
-		const adapter = this.app.vault.adapter;
-		const vaultBasePath = adapter instanceof FileSystemAdapter ? adapter.basePath : undefined;
-		if (vaultBasePath) {
-			for (const absPath of absolutePaths) {
-				const vaultRelative = this.absoluteToVaultPath(absPath, vaultBasePath);
-				if (vaultRelative && this.app.vault.getAbstractFileByPath(vaultRelative)) {
-					references.push(vaultRelative);
-				}
-				// Absolute paths that don't match are silently ignored (may be from another machine)
-			}
-		}
-
-		// Try to read display names from external files' frontmatter
 		const externalDisplayNames = new Map<string, string>();
-		for (const ref of unresolvedRefs) {
-			const extName = this.readExternalFrontmatterName(ref);
-			if (extName) {
-				externalDisplayNames.set(ref, extName);
+
+		// Only skill files run reference resolution. Agent → skill edges come
+		// from Obsidian's native markdown-link resolution (resolvedLinks),
+		// not from this plugin's reference injection.
+		if (isSkill) {
+			// Read file content
+			const text = await this.app.vault.cachedRead(file);
+
+			// Parse references from content
+			const { relativePaths, absolutePaths } = parseReferences(text);
+			const dir = file.parent?.path ?? "";
+
+			// Resolve relative paths
+			for (const ref of relativePaths) {
+				const resolved = this.resolveRefPath(ref, dir);
+				if (resolved) {
+					references.push(resolved);
+				} else {
+					// Skip paths with placeholders (e.g. [market], YYYY-MM)
+					if (!/[[\]{}]/.test(ref) && !/YYYY/.test(ref)) {
+						unresolvedRefs.push(ref);
+					}
+				}
+			}
+
+			// Resolve absolute paths: strip vault base path prefix to get vault-relative path
+			const adapter = this.app.vault.adapter;
+			const vaultBasePath = adapter instanceof FileSystemAdapter ? adapter.basePath : undefined;
+			if (vaultBasePath) {
+				for (const absPath of absolutePaths) {
+					const vaultRelative = this.absoluteToVaultPath(absPath, vaultBasePath);
+					if (vaultRelative && this.app.vault.getAbstractFileByPath(vaultRelative)) {
+						references.push(vaultRelative);
+					}
+					// Absolute paths that don't match are silently ignored (may be from another machine)
+				}
+			}
+
+			// Try to read display names from external files' frontmatter
+			for (const ref of unresolvedRefs) {
+				const extName = this.readExternalFrontmatterName(ref);
+				if (extName) {
+					externalDisplayNames.set(ref, extName);
+				}
 			}
 		}
 
 		this.skillMap.set(file.path, {
 			filePath: file.path,
 			displayName,
+			kind,
 			references,
 			unresolvedRefs,
 			externalDisplayNames,
@@ -187,11 +224,13 @@ export class SkillParser {
 		return null;
 	}
 
-	/** Called when the metadata cache reports a file change */
+	/**
+	 * Called when the metadata cache reports a file change.
+	 * Routes unconditionally through parseSkillFile so it can self-filter
+	 * and self-remove stale entries (e.g. `type: agent` was removed).
+	 */
 	async onMetadataChanged(file: TFile): Promise<void> {
-		if (file.name === this.skillFileName) {
-			await this.parseSkillFile(file);
-		}
+		await this.parseSkillFile(file);
 	}
 
 	/** Remove a deleted file's entry from the skill map */

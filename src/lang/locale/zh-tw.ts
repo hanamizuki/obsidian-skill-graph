@@ -11,6 +11,8 @@ const zhTW: Partial<Lang> = {
 	"name-field-desc": "YAML frontmatter 中用來當顯示名稱的欄位",
 	"skill-node-color": "技能節點顏色",
 	"skill-node-color-desc": "SKILL.md 節點的 hex 色碼",
+	"agent-node-color": "Agent 節點顏色",
+	"agent-node-color-desc": "type: agent frontmatter 節點的 hex 色碼",
 	"reference-node-color": "引用節點顏色",
 	"reference-node-color-desc": "Vault 內被引用檔案的 hex 色碼",
 	"external-reference-color": "外部引用顏色",

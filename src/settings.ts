@@ -9,6 +9,8 @@ export interface SkillGraphSettings {
 	nameField: string;
 	/** Color for skill root nodes */
 	colorSkill: string;
+	/** Color for agent nodes (files with type: agent frontmatter) */
+	colorAgent: string;
 	/** Color for local reference nodes (files referenced by SKILL.md, e.g. references/, scripts/) */
 	colorLocalRef: string;
 	/** Color for external reference nodes (files outside the vault) */
@@ -19,6 +21,7 @@ export const DEFAULT_SETTINGS: SkillGraphSettings = {
 	skillFileName: "SKILL.md",
 	nameField: "name",
 	colorSkill: "#DE7356",
+	colorAgent: "#7BAE6F",
 	colorLocalRef: "#5B8CA4",
 	colorExternalRef: "#DBDBDB",
 };
@@ -72,6 +75,19 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.colorSkill)
 					.onChange(async (value) => {
 						this.plugin.settings.colorSkill = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName(t("agent-node-color"))
+			.setDesc(t("agent-node-color-desc"))
+			.addText((text) =>
+				text
+					.setPlaceholder("#7bae6f")
+					.setValue(this.plugin.settings.colorAgent)
+					.onChange(async (value) => {
+						this.plugin.settings.colorAgent = value;
 						await this.plugin.saveSettings();
 					})
 			);
