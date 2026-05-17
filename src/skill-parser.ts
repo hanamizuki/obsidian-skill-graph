@@ -14,23 +14,58 @@ export class SkillParser {
 	private app: App;
 	private skillFileName: string;
 	private nameField: string;
+	/**
+	 * Vault-relative folder whose direct .md children are also treated as
+	 * skill files (additive to the exact skillFileName match). Empty string
+	 * "" disables this folder rule.
+	 */
+	private skillsFolder: string;
 	/** Global skill info map, keyed by vault-relative file path */
 	skillMap: Map<string, SkillInfo> = new Map();
 
-	constructor(app: App, skillFileName: string, nameField: string) {
+	constructor(
+		app: App,
+		skillFileName: string,
+		nameField: string,
+		skillsFolder: string
+	) {
 		this.app = app;
 		this.skillFileName = skillFileName;
 		this.nameField = nameField;
+		this.skillsFolder = skillsFolder;
 	}
 
 	/** Update settings and re-scan */
 	async updateSettings(
 		skillFileName: string,
-		nameField: string
+		nameField: string,
+		skillsFolder: string
 	): Promise<void> {
 		this.skillFileName = skillFileName;
 		this.nameField = nameField;
+		this.skillsFolder = skillsFolder;
 		await this.fullScan();
+	}
+
+	/**
+	 * Whether a file should be treated as a skill file. Two additive rules,
+	 * OR'd together:
+	 * 1. Exact filename match (`file.name === skillFileName`) — classic
+	 *    per-skill `SKILL.md` vaults. Always active.
+	 * 2. The file is a direct .md child of the configured skills folder —
+	 *    flat skill-manager-sync vaults (`skills/<atomic-id>.md`). Disabled
+	 *    when `skillsFolder` is the empty string.
+	 *
+	 * Detection is path/name only (vault-relative `file.parent?.path`) — no
+	 * fs access, readlink, or symlink resolution.
+	 */
+	private isSkillFile(file: TFile): boolean {
+		return (
+			file.name === this.skillFileName ||
+			(this.skillsFolder !== "" &&
+				file.extension === "md" &&
+				file.parent?.path === this.skillsFolder)
+		);
 	}
 
 	/**
@@ -56,7 +91,7 @@ export class SkillParser {
 		const promises: Promise<void>[] = [];
 		for (const file of files) {
 			if (
-				file.name === this.skillFileName ||
+				this.isSkillFile(file) ||
 				(file.extension === "md" && this.isAgentFile(file))
 			) {
 				promises.push(this.parseSkillFile(file));
@@ -72,7 +107,7 @@ export class SkillParser {
 		// lookup in the hot path — parseSkillFile runs on every metadata
 		// change). Agent detection still goes through metadataCache only.
 		const cache = this.app.metadataCache.getFileCache(file);
-		const isSkill = file.name === this.skillFileName;
+		const isSkill = this.isSkillFile(file);
 		const isAgent =
 			file.extension === "md" && cache?.frontmatter?.type === "agent";
 

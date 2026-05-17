@@ -5,6 +5,12 @@ import { t } from "./lang/helpers";
 export interface SkillGraphSettings {
 	/** Filename to scan for skills, default "SKILL.md" */
 	skillFileName: string;
+	/**
+	 * Vault-relative folder whose direct .md children are treated as skill
+	 * nodes (additive to the exact skillFileName match). Empty string ""
+	 * disables this folder rule (pure legacy exact-filename behavior).
+	 */
+	skillsFolder: string;
 	/** Frontmatter field to use as the display name */
 	nameField: string;
 	/** Color for skill root nodes */
@@ -19,6 +25,7 @@ export interface SkillGraphSettings {
 
 export const DEFAULT_SETTINGS: SkillGraphSettings = {
 	skillFileName: "SKILL.md",
+	skillsFolder: "skills",
 	nameField: "name",
 	colorSkill: "#DE7356",
 	colorAgent: "#7BAE6F",
@@ -49,6 +56,19 @@ export class SkillGraphSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.skillFileName)
 					.onChange(async (value) => {
 						this.plugin.settings.skillFileName = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName(t("skills-folder"))
+			.setDesc(t("skills-folder-desc"))
+			.addText((text) =>
+				text
+					.setPlaceholder("skills")
+					.setValue(this.plugin.settings.skillsFolder)
+					.onChange(async (value) => {
+						this.plugin.settings.skillsFolder = value;
 						await this.plugin.saveSettings();
 					})
 			);
