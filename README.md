@@ -70,6 +70,8 @@ Settings → Community plugins → Agent Skill Graph (gear icon)
 
 Enter hex color codes (e.g. `#ff6b6b`). Changes take effect after reopening Graph View.
 
+The plugin UI is localized in English and 正體中文 (Traditional Chinese), auto-selected from Obsidian's display language via the `getLanguage()` API.
+
 ## Tips: Multi-Directory Vault with Symlinks
 
 If your skills are spread across multiple directories, you can use symlinks to consolidate them into a single Obsidian vault.
@@ -199,7 +201,8 @@ src/
 ├── settings.ts          # PluginSettingTab + defaults
 ├── skill-parser.ts      # Scans vault SKILL.md files; parses frontmatter + reference paths
 ├── parse-references.ts  # Pure function: extracts file paths from markdown text (unit-testable)
-└── graph-patcher.ts     # Hooks graph renderer; renames nodes + applies colors
+├── graph-patcher.ts     # Hooks graph renderer; renames nodes + applies colors
+└── lang/                # i18n: helpers.ts (getLanguage()-based locale pick) + locale/{en,zh-tw}.ts
 ```
 
 ### Data Flow
