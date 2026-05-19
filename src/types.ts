@@ -40,6 +40,8 @@ export interface GraphNode {
 	_skillGraphPatched?: boolean;
 	/** Stores the original display text for restoration on cleanup */
 	_originalDisplayText?: string;
+	/** Stores the original getDisplayText closure for restoration on cleanup */
+	_originalGetDisplayText?: () => string;
 }
 
 /** Color value used by the PixiJS-based graph renderer */
@@ -66,6 +68,10 @@ export interface GraphRenderer {
 	renderCallback?: (...args: unknown[]) => void;
 	/** Marker set by the plugin to avoid hooking renderCallback twice */
 	_skillGraphRenderHooked?: boolean;
+	/** Original renderCallback, saved so cleanup can fully unhook */
+	_skillGraphOriginalRenderCallback?: (...args: unknown[]) => void;
+	/** Original colors.fillUnresolved, saved so cleanup can restore it */
+	_skillGraphOriginalFillUnresolved?: RendererColor;
 }
 
 /** Graph link/edge (undocumented API) */

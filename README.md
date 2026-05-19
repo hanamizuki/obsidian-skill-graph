@@ -102,6 +102,19 @@ Then open `~/skill-vault` as an Obsidian vault.
 
 > **Important:** Obsidian ignores directories starting with `.` (dotfiles). Use plain names like `global` instead of `.openclaw` for your symlink names.
 
+### Editing skills through the symlink
+
+Edits you make in this symlinked vault write straight back to the original skill files — there is no copy and no separate sync step.
+
+This works because the plugin never writes to disk. It only *reads* skill files (`vault.cachedRead`) and *reads* external frontmatter (`fs.readFileSync`); all of its renaming, coloring, and edge work is in-memory Graph View state. Editing file content is therefore plain Obsidian behavior: because each skill directory is symlinked in, Obsidian writes through the symlink to the real source file, and the change takes effect there immediately.
+
+Concretely:
+
+- Edit a skill's body or frontmatter in Obsidian → the real file under the symlink target is updated right away.
+- Change the frontmatter `name` → the graph re-parses on the `metadataCache` change event and the node label updates live. The file itself keeps its name (e.g. `SKILL.md`); the plugin never renames files on disk.
+
+**Exception:** this applies only to files that are *inside* the vault (including the real files reached through your symlinks). It does **not** apply to out-of-vault [external virtual nodes](#out-of-vault-paths-become-external-virtual-nodes) — those are read-only placeholders. Clicking one creates a blank note instead of opening the source (see [Known Limitations](#known-limitations)).
+
 ## How It Works
 
 ### Skill Node Detection
@@ -119,7 +132,12 @@ Obsidian's Graph View renders with PixiJS (WebGL). The plugin listens to the `la
 
 ### Edges
 
-The plugin injects SKILL.md → referenced-file entries into `metadataCache.resolvedLinks`, which is the internal data structure Obsidian uses to track file links and that Graph View reads to create PixiJS link objects. This is a pure in-memory operation — no files on disk are touched.
+The plugin injects SKILL.md → referenced-file entries into Obsidian's internal link tables, which Graph View reads to create PixiJS link objects:
+
+- **In-vault references** go into `metadataCache.resolvedLinks` — drawn as solid edges to real file nodes.
+- **Out-of-vault references** go into `metadataCache.unresolvedLinks` — drawn as edges to *virtual* nodes (files that exist on disk but not inside the vault).
+
+This is a pure in-memory operation — no files on disk are touched.
 
 ### Node Coloring
 
@@ -140,6 +158,7 @@ Agent → skill edges are produced by Obsidian's **native markdown-link resoluti
 - **200 ms debounce**: `layout-change` fires frequently (resize, pane switch). Debouncing prevents redundant work.
 - **`_skillGraphPatched` flag**: already-patched nodes are skipped on subsequent passes.
 - **Incremental updates**: `metadataCache.on('changed')` re-parses only the changed SKILL.md.
+- **500 ms periodic patch**: a `registerInterval` timer re-runs the patch pass every 500 ms while the plugin is loaded, to catch nodes the renderer adds dynamically (e.g. graph animation mode) without a `layout-change` event. The `_skillGraphPatched` flag keeps each pass cheap, and `registerInterval` clears the timer automatically on unload.
 
 ## Path Resolution
 
@@ -157,13 +176,25 @@ Reference path formats inside the OpenClaw ecosystem are inconsistent. The parse
 
 Supported CLI keywords: `python3`, `python`, `bash`, `node`, `sh`
 
-### Ignored Path Formats
+### Dropped Path Formats
 
-| Format | Reason |
-|--------|--------|
-| URLs (`https://...`) | External links, not file references |
-| `~`-prefixed paths (`~/workspace/...`) | Home-directory paths; cannot reliably map to vault |
-| `.openclaw/skills/` paths | Global skills; reserved for a future virtual-node feature |
+These never become graph nodes — they are discarded during parsing:
+
+| Format | Where | Reason |
+|--------|-------|--------|
+| URLs (`https://...`) | `parse-references` | External links, not file references |
+| Strings without a `/` and a file extension | `parse-references` | Not a file-path shape (e.g. prose, bare words) |
+| Refs containing `[ ] { }` or `YYYY` | `skill-parser` | Templated/placeholder paths (e.g. `reports/[market]/YYYY-MM.md`) cannot resolve to a real file |
+
+### Out-of-Vault Paths Become External Virtual Nodes
+
+Path shapes that *look* like files but do not resolve to anything inside the vault are **not** dropped. They are injected into `metadataCache.unresolvedLinks` and shown as external virtual nodes (see [Edges](#edges)):
+
+| Format | Example | Handling |
+|--------|---------|----------|
+| `~`-prefixed paths | `~/.openclaw/skills/foo/SKILL.md` | Shown as a virtual node; the plugin expands `~` and reads that file's frontmatter `name` for the label (see [Privacy & Data Access](#privacy--data-access)) |
+| Dotfile paths (`.openclaw/skills/…`, `.claude/skills/…`) | `.openclaw/skills/foo/SKILL.md` | No special-casing — treated like any other unresolvable ref. Obsidian itself hides dotfile directories, so such a path never matches a vault file and becomes a virtual node |
+| Any other relative path that no [fallback strategy](#three-level-fallback-resolution) resolves | `some/other/file.md` | Virtual node (no external name lookup unless `~`-prefixed) |
 
 ### Three-level Fallback Resolution
 
@@ -225,7 +256,10 @@ This plugin relies on the following undocumented Obsidian internals (confirmed v
 | `leaf.view.renderer.nodes` | Access graph node array | May change with Obsidian updates |
 | `node.text._text` | PixiJS Text display string | May change with PixiJS version bumps |
 | `node.color = { a, rgb }` | Node color (PixiJS format) | Same as above |
-| `metadataCache.resolvedLinks` | Inject virtual edges | Relatively stable; used by multiple plugins |
+| `metadataCache.resolvedLinks` | Inject in-vault edges | Relatively stable; used by multiple plugins |
+| `metadataCache.unresolvedLinks` | Inject out-of-vault (virtual node) edges | Relatively stable; used by multiple plugins |
+| `renderer.colors.fillUnresolved` | Recolor external/virtual nodes (overrides Obsidian's default gray) | May change with Obsidian updates; saved and restored on unload |
+| `renderer.renderCallback` | Wrapped to re-apply colors every frame (prevents flicker) | May change with Obsidian updates; original saved and unhooked on unload |
 | `vault.adapter.basePath` | Get vault absolute path | Desktop only; not available on mobile |
 
 ## Privacy & Data Access

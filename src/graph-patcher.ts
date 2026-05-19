@@ -79,6 +79,13 @@ export class GraphPatcher {
 	 */
 	private overrideUnresolvedColor(renderer: GraphRenderer): void {
 		if (renderer.colors?.fillUnresolved) {
+			// Save the renderer's original color once (before our first
+			// override) so cleanup() can restore it. Guarded so a re-patch
+			// pass never captures our own injected color as the "original".
+			if (renderer._skillGraphOriginalFillUnresolved === undefined) {
+				renderer._skillGraphOriginalFillUnresolved =
+					renderer.colors.fillUnresolved;
+			}
 			renderer.colors.fillUnresolved = {
 				a: 1,
 				rgb: this.hexToInt(this.settings.colorExternalRef),
@@ -95,6 +102,9 @@ export class GraphPatcher {
 
 		const originalCallback = renderer.renderCallback;
 		if (typeof originalCallback !== "function") return;
+
+		// Save the original so cleanup() can fully unhook on plugin unload.
+		renderer._skillGraphOriginalRenderCallback = originalCallback;
 
 		renderer.renderCallback = (...args: unknown[]) => {
 			originalCallback.call(renderer, ...args);
@@ -113,6 +123,10 @@ export class GraphPatcher {
 				const skillInfo = this.skillMap.get(node.id);
 				if (skillInfo) {
 					node._originalDisplayText = node.text._text;
+					// Save the original reference verbatim so cleanup() can
+					// restore the exact closure; binding would change identity.
+					// eslint-disable-next-line @typescript-eslint/unbound-method
+					node._originalGetDisplayText = node.getDisplayText;
 					node.text._text = skillInfo.displayName;
 					node.text.dirty = true;
 					node.getDisplayText = () => skillInfo.displayName;
@@ -122,6 +136,10 @@ export class GraphPatcher {
 				const extName = this.externalDisplayNames.get(node.id);
 				if (extName) {
 					node._originalDisplayText = node.text._text;
+					// Save the original reference verbatim so cleanup() can
+					// restore the exact closure; binding would change identity.
+					// eslint-disable-next-line @typescript-eslint/unbound-method
+					node._originalGetDisplayText = node.getDisplayText;
 					node.text._text = extName;
 					node.text.dirty = true;
 					node.getDisplayText = () => extName;
@@ -176,6 +194,9 @@ export class GraphPatcher {
 
 	/** Remove all patches and restore original state (called on plugin unload) */
 	cleanup(): void {
+		// NOTE: only graph/localgraph leaves open at unload time are restored.
+		// Obsidian discards a leaf's renderer when the leaf closes, so
+		// renderers not in this list are already gone and need no cleanup.
 		const graphLeaves = [
 			...this.app.workspace.getLeavesOfType("graph"),
 			...this.app.workspace.getLeavesOfType("localgraph"),
@@ -190,8 +211,37 @@ export class GraphPatcher {
 					node.text._text = node._originalDisplayText;
 					node.text.dirty = true;
 				}
+				if (node._originalGetDisplayText !== undefined) {
+					node.getDisplayText = node._originalGetDisplayText;
+				}
 				delete node._skillGraphPatched;
 				delete node._originalDisplayText;
+				delete node._originalGetDisplayText;
+			}
+
+			// Unhook the per-frame render callback. Without this the wrapper
+			// keeps recoloring nodes every frame after the plugin is
+			// disabled, until the renderer is rebuilt.
+			// _skillGraphRenderHooked and _skillGraphOriginalRenderCallback are
+			// always set together in hookRenderCallback(), so clear them
+			// together — the hooked marker must not outlive the saved callback.
+			if (renderer._skillGraphOriginalRenderCallback !== undefined) {
+				renderer.renderCallback =
+					renderer._skillGraphOriginalRenderCallback;
+				delete renderer._skillGraphOriginalRenderCallback;
+				delete renderer._skillGraphRenderHooked;
+			}
+
+			// Restore the renderer's original unresolved-node color. The marker
+			// is cleared unconditionally: even if `colors` is gone and the value
+			// can't be written back, a residual marker would leave the renderer
+			// in a "not fully rolled back" state.
+			if (renderer._skillGraphOriginalFillUnresolved !== undefined) {
+				if (renderer.colors) {
+					renderer.colors.fillUnresolved =
+						renderer._skillGraphOriginalFillUnresolved;
+				}
+				delete renderer._skillGraphOriginalFillUnresolved;
 			}
 		}
 	}
