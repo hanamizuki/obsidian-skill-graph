@@ -115,6 +115,24 @@ Concretely:
 
 **Exception:** this applies only to files that are *inside* the vault (including the real files reached through your symlinks). It does **not** apply to out-of-vault [external virtual nodes](#out-of-vault-paths-become-external-virtual-nodes) — those are read-only placeholders. Clicking one creates a blank note instead of opening the source (see [Known Limitations](#known-limitations)).
 
+## Companion Tool: skill-graph-builder
+
+The agent↔skill vault this plugin visualizes is best produced by **[skill-graph-builder](https://github.com/hanamizuki/skill-graph-builder)** — a framework-agnostic CLI/skill that scans your AI agent platforms (Claude Code, Codex, OpenClaw, Hermes) with zero configuration and emits a ready-to-open Obsidian vault.
+
+It is the **producer**; this plugin is the **consumer / viewer**. The two form a producer→consumer workflow with **no code coupling** — each works independently, but they are designed to be used together. Both are MIT-licensed.
+
+The generated vault uses the flat atomic model this plugin already understands:
+
+- `<vault>/skills/<id>.md` — one node per skill (a symlink to the real `SKILL.md`, deduplicated across sources and agents)
+- `<vault>/agents/<platform>-<profile>.md` — one node per agent, linking to every skill it can access
+
+### Quick start
+
+1. Get skill-graph-builder — drop it into your agent's skill directory, or run its Python CLI directly. (Claude Code / Codex paths need no dependencies — pure standard library; Hermes / OpenClaw additionally need optional PyYAML.)
+2. Run it to generate the vault.
+3. Open that vault in Obsidian and enable this plugin (see [Getting Started](#getting-started)).
+4. Open Graph View — the agent↔skill relationships render as a graph.
+
 ## How It Works
 
 ### Skill Node Detection
