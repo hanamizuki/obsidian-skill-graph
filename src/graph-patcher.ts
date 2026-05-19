@@ -222,20 +222,25 @@ export class GraphPatcher {
 			// Unhook the per-frame render callback. Without this the wrapper
 			// keeps recoloring nodes every frame after the plugin is
 			// disabled, until the renderer is rebuilt.
+			// _skillGraphRenderHooked and _skillGraphOriginalRenderCallback are
+			// always set together in hookRenderCallback(), so clear them
+			// together — the hooked marker must not outlive the saved callback.
 			if (renderer._skillGraphOriginalRenderCallback !== undefined) {
 				renderer.renderCallback =
 					renderer._skillGraphOriginalRenderCallback;
 				delete renderer._skillGraphOriginalRenderCallback;
+				delete renderer._skillGraphRenderHooked;
 			}
-			delete renderer._skillGraphRenderHooked;
 
-			// Restore the renderer's original unresolved-node color.
-			if (
-				renderer._skillGraphOriginalFillUnresolved !== undefined &&
-				renderer.colors
-			) {
-				renderer.colors.fillUnresolved =
-					renderer._skillGraphOriginalFillUnresolved;
+			// Restore the renderer's original unresolved-node color. The marker
+			// is cleared unconditionally: even if `colors` is gone and the value
+			// can't be written back, a residual marker would leave the renderer
+			// in a "not fully rolled back" state.
+			if (renderer._skillGraphOriginalFillUnresolved !== undefined) {
+				if (renderer.colors) {
+					renderer.colors.fillUnresolved =
+						renderer._skillGraphOriginalFillUnresolved;
+				}
 				delete renderer._skillGraphOriginalFillUnresolved;
 			}
 		}
