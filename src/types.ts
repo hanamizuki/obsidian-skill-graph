@@ -40,6 +40,8 @@ export interface GraphNode {
 	_skillGraphPatched?: boolean;
 	/** Stores the original display text for restoration on cleanup */
 	_originalDisplayText?: string;
+	/** Stores the original getDisplayText closure for restoration on cleanup */
+	_originalGetDisplayText?: () => string;
 }
 
 /** Color value used by the PixiJS-based graph renderer */
