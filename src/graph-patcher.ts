@@ -79,6 +79,13 @@ export class GraphPatcher {
 	 */
 	private overrideUnresolvedColor(renderer: GraphRenderer): void {
 		if (renderer.colors?.fillUnresolved) {
+			// Save the renderer's original color once (before our first
+			// override) so cleanup() can restore it. Guarded so a re-patch
+			// pass never captures our own injected color as the "original".
+			if (renderer._skillGraphOriginalFillUnresolved === undefined) {
+				renderer._skillGraphOriginalFillUnresolved =
+					renderer.colors.fillUnresolved;
+			}
 			renderer.colors.fillUnresolved = {
 				a: 1,
 				rgb: this.hexToInt(this.settings.colorExternalRef),
@@ -95,6 +102,9 @@ export class GraphPatcher {
 
 		const originalCallback = renderer.renderCallback;
 		if (typeof originalCallback !== "function") return;
+
+		// Save the original so cleanup() can fully unhook on plugin unload.
+		renderer._skillGraphOriginalRenderCallback = originalCallback;
 
 		renderer.renderCallback = (...args: unknown[]) => {
 			originalCallback.call(renderer, ...args);
@@ -192,6 +202,26 @@ export class GraphPatcher {
 				}
 				delete node._skillGraphPatched;
 				delete node._originalDisplayText;
+			}
+
+			// Unhook the per-frame render callback. Without this the wrapper
+			// keeps recoloring nodes every frame after the plugin is
+			// disabled, until the renderer is rebuilt.
+			if (renderer._skillGraphOriginalRenderCallback) {
+				renderer.renderCallback =
+					renderer._skillGraphOriginalRenderCallback;
+				delete renderer._skillGraphOriginalRenderCallback;
+			}
+			delete renderer._skillGraphRenderHooked;
+
+			// Restore the renderer's original unresolved-node color.
+			if (
+				renderer._skillGraphOriginalFillUnresolved !== undefined &&
+				renderer.colors
+			) {
+				renderer.colors.fillUnresolved =
+					renderer._skillGraphOriginalFillUnresolved;
+				delete renderer._skillGraphOriginalFillUnresolved;
 			}
 		}
 	}
