@@ -224,14 +224,15 @@ export class SkillParser {
 	 */
 	private resolveRefPath(ref: string, parentDir: string): string | null {
 		// Strategy 1: relative to SKILL.md's parent directory
-		const relPath = parentDir ? `${parentDir}/${ref}` : ref;
-		if (this.app.vault.getAbstractFileByPath(relPath)) {
+		const relPath = this.normalizeVaultPath(parentDir ? `${parentDir}/${ref}` : ref);
+		if (relPath && this.app.vault.getAbstractFileByPath(relPath)) {
 			return relPath;
 		}
 
 		// Strategy 2: from vault root
-		if (this.app.vault.getAbstractFileByPath(ref)) {
-			return ref;
+		const rootPath = this.normalizeVaultPath(ref);
+		if (rootPath && this.app.vault.getAbstractFileByPath(rootPath)) {
+			return rootPath;
 		}
 
 		// Strategy 3: strip first path segment
@@ -239,13 +240,31 @@ export class SkillParser {
 		// when vault root is skills/
 		const slashIdx = ref.indexOf("/");
 		if (slashIdx !== -1) {
-			const stripped = ref.substring(slashIdx + 1);
-			if (this.app.vault.getAbstractFileByPath(stripped)) {
+			const stripped = this.normalizeVaultPath(ref.substring(slashIdx + 1));
+			if (stripped && this.app.vault.getAbstractFileByPath(stripped)) {
 				return stripped;
 			}
 		}
 
 		return null;
+	}
+
+	private normalizeVaultPath(path: string): string | null {
+		const parts: string[] = [];
+		for (const part of path.split("/")) {
+			if (part === "" || part === ".") {
+				continue;
+			}
+			if (part === "..") {
+				if (parts.length === 0) {
+					return null;
+				}
+				parts.pop();
+			} else {
+				parts.push(part);
+			}
+		}
+		return parts.join("/");
 	}
 
 	/**
