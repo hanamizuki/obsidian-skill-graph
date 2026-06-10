@@ -253,3 +253,40 @@ describe("SkillParser — skills folder detection", () => {
 		);
 	});
 });
+
+describe("SkillParser — reference resolution", () => {
+	it("normalizes parent-relative references before resolving vault paths", async () => {
+		const fm: { value: Record<string, unknown> | null } = {
+			value: { name: "transcript-summary" },
+		};
+		const targetPath = "skills/review-card/SKILL.md";
+		const existingPaths = new Set([targetPath]);
+		const app = {
+			metadataCache: {
+				getFileCache: () => ({ frontmatter: fm.value }),
+			},
+			vault: {
+				cachedRead: async () => "[review-card](../review-card/SKILL.md)",
+				adapter: {},
+				getAbstractFileByPath: (path: string) =>
+					existingPaths.has(path) ? { path } : null,
+				getMarkdownFiles: () => [],
+			},
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		} as any;
+		const parser = new SkillParser(app, "SKILL.md", "name", "skills");
+		const file = makeFakeFile({
+			path: "skills/transcript-summary/SKILL.md",
+			name: "SKILL.md",
+			extension: "md",
+			parent: { path: "skills/transcript-summary", name: "transcript-summary" },
+			basename: "SKILL",
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		}) as any;
+
+		await parser.parseSkillFile(file);
+		const parsed = parser.skillMap.get("skills/transcript-summary/SKILL.md");
+		expect(parsed?.references).toContain(targetPath);
+		expect(parsed?.unresolvedRefs).not.toContain("../review-card/SKILL.md");
+	});
+});
